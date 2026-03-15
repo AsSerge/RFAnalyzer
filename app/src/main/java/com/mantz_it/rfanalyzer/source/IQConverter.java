@@ -62,6 +62,9 @@ public abstract class IQConverter {
 	}
 
 	protected int calcOptimalCosineLength() {
+        if (sampleRate <= 0 || cosineFrequency == 0) {
+            return 1;  // sampleRate or cosineFrequency == 0 is invalid; return 1 to not break anything
+        }
 		// look for the best fitting array size to hold one or more full cosine cycles:
 		double cycleLength = sampleRate / Math.abs((double)cosineFrequency);
 		int bestLength = (int) cycleLength;

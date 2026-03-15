@@ -24,13 +24,15 @@ class Resampler(
     var outputSampleRate: Int,
     private val packetSize: Int,
     private val inputQueue: ArrayBlockingQueue<SamplePacket>,
-    private val inputReturnQueue: ArrayBlockingQueue<SamplePacket>
+    private val inputReturnQueue: ArrayBlockingQueue<SamplePacket>,
+    var maxTaps: Int = 500
 ) : Thread() {
 
     private var stopRequested = true
     private var resampler: RationalResampler? = null
     private var inputRate: Int = 0
     private var lastOutputRate: Int = 0
+    private var lastMaxTaps = maxTaps
 
     private val outputQueue = ArrayBlockingQueue<SamplePacket>(OUTPUT_QUEUE_SIZE)
     private val outputReturnQueue = ArrayBlockingQueue<SamplePacket>(OUTPUT_QUEUE_SIZE)
@@ -77,50 +79,57 @@ class Resampler(
                 break
             }
 
-            // Grab output buffer
-            val outputSamples: SamplePacket = try {
-                val packet = outputReturnQueue.poll(1000, TimeUnit.MILLISECONDS)
-                if (packet == null) {
-                    Log.d(LOGTAG, "run: No packets from outputReturnQueue. Skipping input packet.")
-                    inputReturnQueue.offer(inputSamples)
-                    continue
-                } else packet
-            } catch (e: InterruptedException) {
-                Log.e(LOGTAG, "run: Interrupted while waiting on output return queue! stop.")
-                stopRequested = true
-                break
-            }
-            outputSamples.setSize(0) // mark as empty
-
             val inRate = inputSamples.sampleRate
-            if (resampler == null || inRate != inputRate || outputSampleRate != lastOutputRate) {
+            if (inRate == 0) {
+                Log.d(LOGTAG, "run: inputSamples.sampleRate == 0. skipping..")
+                inputReturnQueue.offer(inputSamples)
+                continue
+            }
+
+            // Check if reconfiguration of Resampler is necessary
+            if (resampler == null || inRate != inputRate || outputSampleRate != lastOutputRate || maxTaps != lastMaxTaps) {
                 Log.d(LOGTAG, "run: (Re)creating resampler: new rates: inRate=$inRate, outRate=$outputSampleRate")
                 // Limit the maximum interpolation factor to 10000 to keep memory usage of filter bank in bounds:
                 val (interpolation, decimation) = RationalResampler.limitDenominator(outputSampleRate, inRate, 10000)
                 val error = kotlin.math.abs(outputSampleRate.toDouble() / inRate - interpolation.toDouble() / decimation)
                 Log.d(LOGTAG, "run: (Re)creating resampler: interpolation=$interpolation, decimation=$decimation (error=$error or ${(outputSampleRate*error).toInt()} Sps)")
-                resampler = RationalResampler(interpolation, decimation, maxTaps = 500) // limiting tap count to max. 500 per FirFilter (should only kick in for large difference in sample rates, e.g. 20Msps -> 96000kSps)
+                resampler = RationalResampler(interpolation, decimation, maxTaps = maxTaps) // limiting tap count to max. 500 per FirFilter (should only kick in for large difference in sample rates, e.g. 20Msps -> 96000kSps)
                 inputRate = inRate
                 lastOutputRate = outputSampleRate
+                lastMaxTaps = maxTaps
             }
 
-            val startTimestamp = System.nanoTime()
-            val consumed = resampler!!.resample(inputSamples, outputSamples, 0, inputSamples.size())
-            if (consumed < inputSamples.size()) {
-                Log.w(LOGTAG, "run: Resampler consumed only $consumed of ${inputSamples.size()} samples")
+            var inputBufferIndex = 0 // start processing from the beginning of the input packet
+            var totalProcessingTimeNs = 0L
+            while (inputBufferIndex < inputSamples.size()) {
+                // Grab output buffer
+                val outputSamples: SamplePacket = try {
+                    val packet = outputReturnQueue.poll(1000, TimeUnit.MILLISECONDS)
+                    if (packet == null) {
+                        Log.d(LOGTAG, "run: No packets from outputReturnQueue. Skipping input packet.")
+                        inputReturnQueue.offer(inputSamples)
+                        break
+                    } else packet
+                } catch (e: InterruptedException) {
+                    Log.e(LOGTAG, "run: Interrupted while waiting on output return queue! stop.")
+                    stopRequested = true
+                    break
+                }
+                outputSamples.setSize(0) // mark as empty
+                val remainingSamples = inputSamples.size() - inputBufferIndex
+                val startTimestamp = System.nanoTime()
+                val consumed = resampler!!.resample(inputSamples, outputSamples, inputBufferIndex, remainingSamples)
+                totalProcessingTimeNs += System.nanoTime() - startTimestamp
+                outputSamples.sampleRate = outputSampleRate  // set the desired output sample rate instead of the actual sample rate, to not confuse later stages
+                outputQueue.offer(outputSamples)
+                inputBufferIndex += consumed
             }
-
-            outputSamples.sampleRate = outputSampleRate  // set the desired output sample rate instead of the actual sample rate, to not confuse later stages
-
-            // TODO: Currently only downsampling can guarantee that the samples fit in the out packet.
-            // TODO: To support upsampling, the input packet should not be returned when not all samples were consumed!
 
             // performance tracking
             val nsPerPacket = inputSamples.size() * 1_000_000_000f / inputSamples.sampleRate
-            GlobalPerformanceData.updateLoad("Resampler",(System.nanoTime() - startTimestamp) / nsPerPacket)
+            GlobalPerformanceData.updateLoad("Resampler", totalProcessingTimeNs / nsPerPacket)
 
             inputReturnQueue.offer(inputSamples)
-            outputQueue.offer(outputSamples)
         }
 
         stopRequested = true

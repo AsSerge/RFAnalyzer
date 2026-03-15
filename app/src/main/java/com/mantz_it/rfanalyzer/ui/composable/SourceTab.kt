@@ -1,11 +1,15 @@
 package com.mantz_it.rfanalyzer.ui.composable
 
+import android.net.Uri
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
@@ -21,10 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantz_it.rfanalyzer.R
+import com.mantz_it.rfanalyzer.source.AirspyHfSource
 import com.mantz_it.rfanalyzer.source.AirspySource
 import com.mantz_it.rfanalyzer.source.HydraSdrRfPort
 import com.mantz_it.rfanalyzer.source.HydraSdrSource
@@ -56,11 +63,11 @@ import com.mantz_it.rfanalyzer.source.HydraSdrSource
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
 enum class SourceType(val displayName: String, val defaultSupportedSampleRates: List<Long>) {
     HACKRF("HACKRF", listOf(4000000, 6000000, 8000000, 10000000, 12500000, 16000000, 20000000)),
     RTLSDR("RTLSDR", listOf(1000000, 2000000, 2500000)),
     AIRSPY("AIRSPY", listOf(2400000, 2500000, 3000000, 5000000, 6000000, 10000000)),
+    AIRSPYHF("AIRSPYHF", listOf(192000, 256000, 384000, 768000)),
     HYDRASDR("HYDRASDR", listOf(2500000, 5000000, 10000000)),
     FILESOURCE("File Source", listOf(0));
 }
@@ -69,7 +76,14 @@ enum class FilesourceFileFormat(val displayName: String, val description: String
     HACKRF("HACKRF", "8-bit signed IQ (HackRF)", 2),
     RTLSDR("RTLSDR", "8-bit unsigned IQ (RTL-SDR)", 2),
     AIRSPY("AIRSPY", "16-bit signed IQ (AIRSPY)", 4),
+    AIRSPYHF("AIRSPYHF", "32-bit float IQ (AIRSPYHF)", 8),
     HYDRASDR("HYDRASDR", "16-bit signed IQ (HYDRASDR)", 4)
+}
+
+enum class RtlsdrDirectSamplingMode(val displayName: String, val intValue: Int) {
+    OFF("Off", 0),
+    I("I-Branch", 1),
+    Q("Q-Branch", 2)
 }
 
 data class SourceTabActions(
@@ -94,6 +108,7 @@ data class SourceTabActions(
     val onRtlsdrFrequencyCorrectionChanged: (Int) -> Unit,
     val onRtlsdrConverterOffsetChanged: (newFrequency: Long) -> Unit,
     val onRtlsdrEnableBiasTChanged: (Boolean) -> Unit,
+    val onRtlsdrDirectSamplingModeChanged: (RtlsdrDirectSamplingMode) -> Unit,
     val onAirspyAdvancedGainEnabledChanged: (newGain: Boolean) -> Unit,
     val onAirspyVgaGainChanged: (newGain: Int) -> Unit,
     val onAirspyLnaGainChanged: (newGain: Int) -> Unit,
@@ -102,6 +117,11 @@ data class SourceTabActions(
     val onAirspySensitivityGainChanged: (newGain: Int) -> Unit,
     val onAirspyRfBiasEnabledChanged: (newBias: Boolean) -> Unit,
     val onAirspyConverterOffsetChanged: (newFrequency: Long) -> Unit,
+    val onAirspyHfAgcEnabledChanged: (enabled: Boolean) -> Unit,
+    val onAirspyHfAgcThresholdChanged: (high: Boolean) -> Unit,
+    val onAirspyHfAttenuationChanged: (attenuation: Int) -> Unit,
+    val onAirspyHfLnaEnabledChanged: (enabled: Boolean) -> Unit,
+    val onAirspyHfConverterOffsetChanged: (newFrequency: Long) -> Unit,
     val onHydraSdrAdvancedGainEnabledChanged: (newGain: Boolean) -> Unit,
     val onHydraSdrVgaGainChanged: (newGain: Int) -> Unit,
     val onHydraSdrLnaGainChanged: (newGain: Int) -> Unit,
@@ -111,7 +131,7 @@ data class SourceTabActions(
     val onHydraSdrRfBiasEnabledChanged: (newBias: Boolean) -> Unit,
     val onHydraSdrRfPortChanged: (newPort: HydraSdrRfPort) -> Unit,
     val onHydraSdrConverterOffsetChanged: (newFrequency: Long) -> Unit,
-    val onOpenFileClicked: () -> Unit,
+    val onOpenFileChosen: (uri: Uri, filename: String?) -> Unit,
     val onViewRecordingsClicked: () -> Unit,
     val onFilesourceRepeatChanged: (Boolean) -> Unit
 )
@@ -147,8 +167,9 @@ fun SourceTabComposable(
     rtlsdrExternalServerPort: Int,
     rtlsdrFrequencyCorrection: Int,
     rtlsdrConverterOffset: Long,
-    rtlsdrAllowOutOfBoundFrequency: Boolean,
+    rtlsdrFrequencyRestrictionsDisabled: Boolean,
     rtlsdrEnableBiasT: Boolean,
+    rtlsdrDirectSamplingMode: RtlsdrDirectSamplingMode,
     airspyAdvancedGainEnabled: Boolean,
     airspyVgaGain: Int,
     airspyLnaGain: Int,
@@ -157,6 +178,11 @@ fun SourceTabComposable(
     airspySensitivityGain: Int,
     airspyRfBiasEnabled: Boolean,
     airspyConverterOffset: Long,
+    airspyHfAgcEnabled: Boolean,
+    airspyHfAgcThreshold: Boolean,
+    airspyHfAttenuation: Int,
+    airspyHfLnaEnabled: Boolean,
+    airspyHfConverterOffset: Long,
     hydraSdrAdvancedGainEnabled: Boolean,
     hydraSdrVgaGain: Int,
     hydraSdrLnaGain: Int,
@@ -245,7 +271,7 @@ fun SourceTabComposable(
                         helpSubPath = "sdr-source.html#lna-gain"
                     )
                 }
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                     OutlinedSwitch(
                         label = "Amplifier",
                         helpText = "Enables the HackRF's internal Amplifier",
@@ -269,7 +295,7 @@ fun SourceTabComposable(
                         helpSubPath = "sdr-source.html#antenna-port-power"
                     )
                 }
-                Row {
+                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     OutlinedSwitch(
                         label = "Automatic Sample Rate",
                         helpText = "Sample rate follows zoom level",
@@ -292,7 +318,7 @@ fun SourceTabComposable(
                         helpSubPath = "sdr-source.html#sample-rate"
                     )
                 }
-                OutlinedIntegerTextField(
+                OutlinedLongTextField(
                     label = "Frequency Converter Offset (Hz)",
                     value = hackrfConverterOffset,
                     onValueChange = sourceTabActions.onHackrfConverterOffsetChanged,
@@ -305,8 +331,8 @@ fun SourceTabComposable(
                     unit = "Hz",
                     currentFrequency = frequency,
                     onFrequencyChanged = sourceTabActions.onFrequencyChanged,
-                    minFrequency = if (rtlsdrAllowOutOfBoundFrequency) 0 else minimumFrequency,
-                    maxFrequency = if(rtlsdrAllowOutOfBoundFrequency || maximumFrequency==0L) 10000000000L else maximumFrequency,
+                    minFrequency = if (rtlsdrFrequencyRestrictionsDisabled) 0 else minimumFrequency,
+                    maxFrequency = if(rtlsdrFrequencyRestrictionsDisabled || maximumFrequency==0L) 10000000000L else maximumFrequency,
                     enabled = true,
                     helpSubPath = "sdr-source.html#tune-frequency"
                 )
@@ -364,7 +390,7 @@ fun SourceTabComposable(
                         }
                     }
                 }
-                Row {
+                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     OutlinedSwitch(
                         label = "Automatic Sample Rate",
                         helpText = "Sample rate follows zoom level",
@@ -420,14 +446,14 @@ fun SourceTabComposable(
                     }
                 }
                 Row {
-                    OutlinedIntegerTextField(
+                    OutlinedLongTextField(
                         label = "Frequency Correction (ppm)",
                         value = rtlsdrFrequencyCorrection.toLong(),
                         onValueChange = { sourceTabActions.onRtlsdrFrequencyCorrectionChanged(it.toInt())},
-                        modifier = Modifier.weight(1f).padding(start = 3.dp),
+                        modifier = Modifier.weight(1f).padding(end = 3.dp),
                         helpSubPath = "sdr-source.html#frequency-correction"
                     )
-                    OutlinedIntegerTextField(
+                    OutlinedLongTextField(
                         label = "Frequency Offset (Hz)",
                         value = rtlsdrConverterOffset,
                         onValueChange = sourceTabActions.onRtlsdrConverterOffsetChanged,
@@ -443,6 +469,14 @@ fun SourceTabComposable(
                     enabled = !analyzerRunning,
                     helpSubPath = "sdr-source.html#antenna-port-power"
                 )
+                OutlinedEnumDropDown(
+                    label = "Direct Sampling Mode",
+                    selectedEnum = rtlsdrDirectSamplingMode,
+                    enumClass = RtlsdrDirectSamplingMode::class,
+                    getDisplayName = { it.displayName },
+                    onSelectionChanged = sourceTabActions.onRtlsdrDirectSamplingModeChanged,
+                    helpSubPath = "sdr-source.html#direct-sampling-mode",
+                )
             }
             SourceType.AIRSPY -> {
                 FrequencyChooser(
@@ -454,7 +488,7 @@ fun SourceTabComposable(
                     maxFrequency = AirspySource.MAX_FREQUENCY,
                     helpSubPath = "sdr-source.html#tune-frequency"
                 )
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                     OutlinedSwitch(
                         label = "Advanced Gain Control",
                         helpText = "Set VGA, LNA and Mixer Gain directly",
@@ -463,7 +497,7 @@ fun SourceTabComposable(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(start = 3.dp),
+                            .padding(end = 3.dp),
                         helpSubPath = "sdr-source.html#advanced-gain-control"
                     )
                     OutlinedSwitch(
@@ -531,6 +565,90 @@ fun SourceTabComposable(
                         helpSubPath = "sdr-source.html#advanced-gain-control"
                     )
                 }
+                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+                    OutlinedSwitch(
+                        label = "Automatic Sample Rate",
+                        helpText = "Sample rate follows zoom level",
+                        isChecked = automaticSampleRateAdjustment,
+                        onCheckedChange = sourceTabActions.onAutomaticSampleRateAdjustmentChanged,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(end = 3.dp),
+                        helpSubPath = "sdr-source.html#sample-rate"
+                    )
+                    OutlinedListDropDown(
+                        label = "Sample Rate",
+                        getDisplayName = { it.asStringWithUnit("Sps") },
+                        onSelectionChanged = sourceTabActions.onSampleRateChanged,
+                        items = supportedSampleRates,
+                        selectedItem = sampleRate,
+                        modifier = Modifier.weight(1f).padding(start = 3.dp),
+                        enabled = !automaticSampleRateAdjustment,
+                        helpSubPath = "sdr-source.html#sample-rate"
+                    )
+                }
+                OutlinedLongTextField(
+                    label = "Frequency Converter Offset (Hz)",
+                    value = airspyConverterOffset,
+                    onValueChange = sourceTabActions.onAirspyConverterOffsetChanged,
+                    helpSubPath = "sdr-source.html#frequency-converter-offset"
+                )
+            }
+            SourceType.AIRSPYHF -> {
+                FrequencyChooser(
+                    label = "Tune-Frequency",
+                    unit = "Hz",
+                    currentFrequency = frequency,
+                    onFrequencyChanged = sourceTabActions.onFrequencyChanged,
+                    minFrequency = AirspyHfSource.MIN_FREQUENCY,
+                    maxFrequency = AirspyHfSource.MAX_FREQUENCY,
+                    helpSubPath = "sdr-source.html#tune-frequency"
+                )
+                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                    OutlinedSwitch(
+                        label = "AGC",
+                        helpText = "Automatic Gain Control with high/low threshold.",
+                        isChecked = airspyHfAgcEnabled,
+                        onCheckedChange = sourceTabActions.onAirspyHfAgcEnabledChanged,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(end = 3.dp),
+                        helpSubPath = "sdr-source.html#automatic-gain-control-agc"
+                    )
+                    OutlinedSwitch(
+                        label = "LNA Preamp",
+                        helpText = "Enables the +6dB LNA pre-amplifier",
+                        isChecked = airspyHfLnaEnabled,
+                        onCheckedChange = sourceTabActions.onAirspyHfLnaEnabledChanged,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(start = 3.dp),
+                        helpSubPath = "sdr-source.html#lna-preamp"
+                    )
+                }
+                if (airspyHfAgcEnabled) {
+                    OutlinedSteppedSlider(
+                        label = "AGC Threshold",
+                        steps = listOf(0, 1),
+                        selectedStepIndex = if(airspyHfAgcThreshold) 1 else 0,
+                        onSelectedStepIndexChanged = { sourceTabActions.onAirspyHfAgcThresholdChanged(it == 1) },
+                        formatValue = { if(it == 1) "High" else "Low" },
+                        helpSubPath = "sdr-source.html#automatic-gain-control-agc"
+                    )
+                } else {
+                    OutlinedSteppedSlider(
+                        label = "Attenuation",
+                        unit = "dB",
+                        steps = (AirspyHfSource.MIN_ATTENUATION..AirspyHfSource.MAX_ATTENUATION).toList(),
+                        selectedStepIndex = airspyHfAttenuation,
+                        onSelectedStepIndexChanged = sourceTabActions.onAirspyHfAttenuationChanged,
+                        formatValue = { (it * AirspyHfSource.ATTENUATION_STEP).toString() },
+                        helpSubPath = "sdr-source.html#attenuation"
+                    )
+                }
                 Row {
                     OutlinedSwitch(
                         label = "Automatic Sample Rate",
@@ -554,10 +672,10 @@ fun SourceTabComposable(
                         helpSubPath = "sdr-source.html#sample-rate"
                     )
                 }
-                OutlinedIntegerTextField(
+                OutlinedLongTextField(
                     label = "Frequency Converter Offset (Hz)",
-                    value = airspyConverterOffset,
-                    onValueChange = sourceTabActions.onAirspyConverterOffsetChanged,
+                    value = airspyHfConverterOffset,
+                    onValueChange = sourceTabActions.onAirspyHfConverterOffsetChanged,
                     helpSubPath = "sdr-source.html#frequency-converter-offset"
                 )
             }
@@ -571,7 +689,7 @@ fun SourceTabComposable(
                     maxFrequency = HydraSdrSource.MAX_FREQUENCY,
                     helpSubPath = "sdr-source.html#tune-frequency"
                 )
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                     OutlinedSwitch(
                         label = "Advanced Gain Control",
                         helpText = "Set VGA, LNA and Mixer Gain directly",
@@ -580,7 +698,7 @@ fun SourceTabComposable(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(start = 3.dp),
+                            .padding(end = 3.dp),
                         helpSubPath = "sdr-source.html#advanced-gain-control_1"
                     )
                     OutlinedSwitch(
@@ -656,7 +774,7 @@ fun SourceTabComposable(
                     onSelectionChanged = sourceTabActions.onHydraSdrRfPortChanged,
                     helpSubPath = "sdr-source.html#rf-port",
                 )
-                Row {
+                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     OutlinedSwitch(
                         label = "Automatic Sample Rate",
                         helpText = "Sample rate follows zoom level",
@@ -679,7 +797,7 @@ fun SourceTabComposable(
                         helpSubPath = "sdr-source.html#sample-rate"
                     )
                 }
-                OutlinedIntegerTextField(
+                OutlinedLongTextField(
                     label = "Frequency Converter Offset (Hz)",
                     value = hydraSdrConverterOffset,
                     onValueChange = sourceTabActions.onHydraSdrConverterOffsetChanged,
@@ -689,28 +807,35 @@ fun SourceTabComposable(
             SourceType.FILESOURCE -> {
                 Text("File: " + filesourceFilename.ifEmpty { "(no File selected)" }, fontSize = 12.sp, lineHeight = 13.sp)
                 Row {
+                    val openIqFilePicker = rememberOpenFilePicker(
+                        mimeTypes = arrayOf("*/*"),
+                        onFileChosen = { uri, filename -> sourceTabActions.onOpenFileChosen(uri, filename) },
+                        onAbort = { }
+                    )
                     Button(
-                        onClick = sourceTabActions.onOpenFileClicked,
+                        onClick = openIqFilePicker,
                         shape = MaterialTheme.shapes.small,
                         enabled = !analyzerRunning,
                         modifier = Modifier
-                            .padding(end = 6.dp)
+                            .padding(end = 3.dp)
                             .align(Alignment.CenterVertically)
+                            .height(60.dp)
                     ) {
-                        Text("Open File", modifier = Modifier.padding(horizontal = 10.dp))
                         Icon(painter = painterResource(R.drawable.folder_open), "Open IQ File")
+                        Spacer(Modifier.width(8.dp))
+                        Text("Open File")
                     }
                     Button(
                         onClick = sourceTabActions.onViewRecordingsClicked,
                         shape = MaterialTheme.shapes.small,
                         modifier = Modifier
-                            .padding(horizontal = 6.dp)
+                            .padding(start = 3.dp)
                             .weight(1f)
+                            .height(60.dp)
                     ) {
-                        Row {
-                            Text("View Recordings", modifier = Modifier.padding(horizontal = 16.dp))
-                            Icon(imageVector = Icons.Default.Menu, contentDescription = "View Recordings")
-                        }
+                        Icon(imageVector = Icons.Default.Menu, contentDescription = "View Recordings")
+                        Spacer(Modifier.width(8.dp))
+                        Text("View Recordings")
                     }
                 }
                 FrequencyChooser(
@@ -732,7 +857,7 @@ fun SourceTabComposable(
                     enabled = !analyzerRunning,
                     helpSubPath = "sdr-source.html#sample-rate_2"
                 )
-                Row {
+                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     OutlinedEnumDropDown(
                         label = "File Format",
                         selectedEnum = filesourceFileFormat,
@@ -762,11 +887,11 @@ fun SourceTabComposable(
 }
 
 @Composable
-@Preview
+@Preview(widthDp = 300)
 fun SourceTabPreview() {
     CompositionLocalProvider(LocalShowHelp provides {}) {
         SourceTabComposable(
-            sourceType = SourceType.HYDRASDR,
+            sourceType = SourceType.HACKRF,
             sourceName = "Test-Source",
             analyzerRunning = true,
             analyzerStartPending = false,
@@ -793,12 +918,13 @@ fun SourceTabPreview() {
             filesourceFilename = "20250101_test_HACKRF_100MHz_2Msps.iq",
             filesourceFileFormat = FilesourceFileFormat.HACKRF,
             filesourceRepeatEnabled = true,
-            rtlsdrExternalServerEnabled = true,
+            rtlsdrExternalServerEnabled = false,
             rtlsdrExternalServerIP = "",
             rtlsdrExternalServerPort = 1234,
             rtlsdrFrequencyCorrection = 0,
-            rtlsdrAllowOutOfBoundFrequency = false,
+            rtlsdrFrequencyRestrictionsDisabled = false,
             rtlsdrEnableBiasT = false,
+            rtlsdrDirectSamplingMode = RtlsdrDirectSamplingMode.OFF,
             airspyAdvancedGainEnabled = false,
             airspyVgaGain = 2,
             airspyLnaGain = 12,
@@ -807,6 +933,11 @@ fun SourceTabPreview() {
             airspySensitivityGain = 0,
             airspyRfBiasEnabled = true,
             airspyConverterOffset = 0L,
+            airspyHfAgcEnabled = false,
+            airspyHfAgcThreshold = true,
+            airspyHfAttenuation = 2,
+            airspyHfLnaEnabled = true,
+            airspyHfConverterOffset = 0L,
             hydraSdrAdvancedGainEnabled = false,
             hydraSdrVgaGain = 2,
             hydraSdrLnaGain = 12,
@@ -833,7 +964,7 @@ fun SourceTabPreview() {
                 onRtlsdrManualGainEnabledChanged = {},
                 onFilesourceFileFormatChanged = {},
                 onRtlsdrConverterOffsetChanged = {},
-                onOpenFileClicked = { },
+                onOpenFileChosen = { _, _ -> },
                 onViewRecordingsClicked = { },
                 onFilesourceRepeatChanged = {},
                 onRtlsdrExternalServerEnabledChanged = { },
@@ -841,6 +972,7 @@ fun SourceTabPreview() {
                 onRtlsdrExternalServerPortChanged = { },
                 onRtlsdrFrequencyCorrectionChanged = { },
                 onRtlsdrEnableBiasTChanged = { },
+                onRtlsdrDirectSamplingModeChanged = { },
                 onAirspyRfBiasEnabledChanged = { },
                 onAirspyAdvancedGainEnabledChanged = { },
                 onAirspyLnaGainChanged = { },
@@ -849,6 +981,11 @@ fun SourceTabPreview() {
                 onAirspyLinearityGainChanged = { },
                 onAirspySensitivityGainChanged = { },
                 onAirspyConverterOffsetChanged = { },
+                onAirspyHfAgcEnabledChanged = { },
+                onAirspyHfAgcThresholdChanged = { },
+                onAirspyHfAttenuationChanged = { },
+                onAirspyHfLnaEnabledChanged = { },
+                onAirspyHfConverterOffsetChanged = { },
                 onHydraSdrAdvancedGainEnabledChanged = { },
                 onHydraSdrRfBiasEnabledChanged = { },
                 onHydraSdrRfPortChanged = { },

@@ -53,6 +53,7 @@ public class AudioSink extends Thread {
 	private FirFilter audioFilter1 = null;		// Filter used to decimate the incoming signal rate
 	private FirFilter audioFilter2 = null;		// Cascaded filter for high incoming signal rates
 	private SamplePacket tmpAudioSamples;		// tmp buffer for audio filters.
+	private boolean lowPerformanceMode = false;
 
 	/**
 	 * Constructor. Will create a new AudioSink.
@@ -60,18 +61,27 @@ public class AudioSink extends Thread {
 	 * @param packetSize	size of the incoming packets
 	 * @param sampleRate	sample rate of the audio signal
 	 */
-	public AudioSink (int packetSize, int sampleRate) {
+	public AudioSink (int packetSize, int sampleRate, boolean lowPerformanceMode) {
 		this.packetSize = packetSize;
 		this.sampleRate = sampleRate;
 
+		int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT);
+		int audioBufferSize = minBufferSize;
+		int queueSize = QUEUE_SIZE;
+		if (lowPerformanceMode) {
+			audioBufferSize = minBufferSize * 10;
+			queueSize = 10;
+			this.lowPerformanceMode = true;
+		}
+
+
 		// Create the queues and fill them with
-		this.inputQueue = new ArrayBlockingQueue<SamplePacket>(QUEUE_SIZE);
-		this.outputQueue = new ArrayBlockingQueue<SamplePacket>(QUEUE_SIZE);
-		for (int i = 0; i < QUEUE_SIZE; i++)
+		this.inputQueue = new ArrayBlockingQueue<SamplePacket>(queueSize);
+		this.outputQueue = new ArrayBlockingQueue<SamplePacket>(queueSize);
+		for (int i = 0; i < queueSize; i++)
 			this.outputQueue.offer(new SamplePacket(packetSize));
 
 		// Create an instance of the AudioTrack class:
-		int bufferSize = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT);
 		AudioAttributes audioAttributes = new AudioAttributes.Builder()
 				.setUsage(AudioAttributes.USAGE_MEDIA)
 				.setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -86,7 +96,7 @@ public class AudioSink extends Thread {
 		this.audioTrack = new AudioTrack.Builder()
 				.setAudioAttributes(audioAttributes)
 				.setAudioFormat(format)
-				.setBufferSizeInBytes(bufferSize)
+				.setBufferSizeInBytes(audioBufferSize)
 				.setTransferMode(AudioTrack.MODE_STREAM)
 				.build();
 
@@ -164,6 +174,16 @@ public class AudioSink extends Thread {
 		this.setName("Thread-AudioSink-" + System.currentTimeMillis());
 		Log.i(LOGTAG,"AudioSink started. (Thread: " + this.getName() + ")");
 
+		if(lowPerformanceMode) {
+			Log.i(LOGTAG,"AudioSink is in low performance mode. Wait for queue to fill up.");
+			while(inputQueue.size() < inputQueue.remainingCapacity() && !stopRequested) { // wait until half full
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException ignored) {
+				}
+			}
+		}
+
 		// start audio playback:
 		audioTrack.play();
 
@@ -175,6 +195,15 @@ public class AudioSink extends Thread {
 
 				if(packet == null) {
 					//Log.d(LOGTAG, "run: Queue is empty. skip this round");
+					if(lowPerformanceMode) {
+						Log.i(LOGTAG,"[low performance mode] AudioSink queue is empty. Wait for queue to fill up.");
+						while(inputQueue.size() < inputQueue.remainingCapacity() && !stopRequested) { // wait until half full
+							try {
+								Thread.sleep(100);
+							} catch (InterruptedException ignored) {
+							}
+						}
+					}
 					continue;
 				}
 

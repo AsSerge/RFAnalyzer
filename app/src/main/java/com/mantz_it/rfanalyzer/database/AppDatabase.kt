@@ -1,7 +1,9 @@
 package com.mantz_it.rfanalyzer.database
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 /**
  * <h1>RF Analyzer - Database</h1>
@@ -29,9 +31,28 @@ import androidx.room.RoomDatabase
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+const val CURRENT_DB_SCHEMA_VERSION = 2
 
-@Database(entities = [Recording::class], version = 1, exportSchema = false)
+@Database(
+    entities = [
+        Recording::class,
+        Station::class,
+        Band::class,
+        BookmarkList::class,
+        OnlineStationProviderSettings::class
+    ],
+    version = CURRENT_DB_SCHEMA_VERSION,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2)
+    ],
+    exportSchema = true
+)
+@TypeConverters(StationTypeConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun recordingDao(): RecordingDao
+    abstract fun stationDao(): StationDao
+    abstract fun bandDao(): BandDao
+    abstract fun bookmarkListDao(): BookmarkListDao
+    abstract fun onlineStationProviderSettingsDao(): OnlineStationProviderSettingsDao
 }
 

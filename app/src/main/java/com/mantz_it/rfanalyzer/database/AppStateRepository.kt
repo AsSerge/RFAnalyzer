@@ -23,6 +23,8 @@ import com.mantz_it.rfanalyzer.ui.composable.SourceType
 import com.mantz_it.rfanalyzer.ui.composable.StopAfterUnit
 import com.mantz_it.rfanalyzer.ui.ColorTheme
 import com.mantz_it.rfanalyzer.ui.composable.ControlDrawerSide
+import com.mantz_it.rfanalyzer.ui.composable.RtlsdrDirectSamplingMode
+import com.mantz_it.rfanalyzer.ui.screens.StationsPage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,6 +42,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.EnumMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -147,8 +150,14 @@ class AppStateRepository @Inject constructor(
     val sourceAutomaticSampleRateAdjustment = Setting("sourceAutomaticSampleRateAdjustment", true, scope, dataStore)
     val sourceSignalStartFrequency = DerivedState(sourceFrequency, sourceSampleRate) { sourceFrequency.value - sourceSampleRate.value/2 }
     val sourceSignalEndFrequency = DerivedState(sourceFrequency, sourceSampleRate) { sourceFrequency.value + sourceSampleRate.value/2 }
-    val sourceMinimumPossibleSignalFrequency = DerivedState(sourceMinimumFrequency, sourceSupportedSampleRates) { sourceMinimumFrequency.value - sourceSupportedSampleRates.value.last()/2 }
-    val sourceMaximumPossibleSignalFrequency = DerivedState(sourceMaximumFrequency, sourceSupportedSampleRates) { sourceMaximumFrequency.value + sourceSupportedSampleRates.value.last()/2 }
+    val sourceMinimumPossibleSignalFrequency = DerivedState(sourceAutomaticSampleRateAdjustment, sourceMinimumFrequency, sourceSupportedSampleRates) {
+        val sampleRate = if (sourceAutomaticSampleRateAdjustment.value) sourceSupportedSampleRates.value.lastOrNull() ?: sourceSampleRate.value else sourceSampleRate.value
+        sourceMinimumFrequency.value - sampleRate/2
+    }
+    val sourceMaximumPossibleSignalFrequency = DerivedState(sourceAutomaticSampleRateAdjustment, sourceMaximumFrequency, sourceSupportedSampleRates) {
+        val sampleRate = if (sourceAutomaticSampleRateAdjustment.value) sourceSupportedSampleRates.value.lastOrNull() ?: sourceSampleRate.value else sourceSampleRate.value
+        sourceMaximumFrequency.value + sampleRate/2
+    }
     val hackrfVgaGainSteps = (0..HackrfSource.MAX_VGA_RX_GAIN step HackrfSource.VGA_RX_GAIN_STEP_SIZE).toList()
     val hackrfVgaGainIndex = Setting("hackrfVgaRxGainIndex", 10, scope, dataStore)
     val hackrfLnaGainSteps = (0..HackrfSource.MAX_LNA_GAIN step HackrfSource.LNA_GAIN_STEP_SIZE).toList()
@@ -169,6 +178,10 @@ class AppStateRepository @Inject constructor(
     val rtlsdrFrequencyCorrection = Setting("rtlsdrFrequencyCorrection", 0, scope, dataStore)
     val rtlsdrAllowOutOfBoundFrequency = Setting("rtlsdrAllowOutOfBoundFrequency", false, scope, dataStore)
     val rtlsdrEnableBiasT = Setting("rtlsdrEnableBiasT", false, scope, dataStore)
+    val rtlsdrDirectSamplingMode = Setting("rtlsdrDirectSamplingMode", RtlsdrDirectSamplingMode.OFF, scope, dataStore)
+    val rtlsdrFrequencyRestrictionsDisabled = DerivedState(rtlsdrBlogV4connected, rtlsdrAllowOutOfBoundFrequency, rtlsdrDirectSamplingMode) {
+        rtlsdrAllowOutOfBoundFrequency.value || rtlsdrBlogV4connected.value || rtlsdrDirectSamplingMode.value != RtlsdrDirectSamplingMode.OFF
+    }
     val airspyAdvancedGainEnabled = Setting("airspyAdvancedGainEnabled", false, scope, dataStore)
     val airspyVgaGain = Setting("airspyVgaGain", 10, scope, dataStore)
     val airspyLnaGain = Setting("airspyLnaGain", 10, scope, dataStore)
@@ -177,6 +190,11 @@ class AppStateRepository @Inject constructor(
     val airspySensitivityGain = Setting("airspySensitivityGain", 10, scope, dataStore)
     val airspyRfBiasEnabled = Setting("airspyRfBiasEnabled", false, scope, dataStore)
     val airspyConverterOffset = Setting("airspyConvertOffset", 0L, scope, dataStore)
+    val airspyHfAgcEnabled = Setting("airspyHfAgcEnabled", true, scope, dataStore)
+    val airspyHfAgcThreshold = Setting("airspyHfAgcThreshold", false, scope, dataStore)
+    val airspyHfAttenuation = Setting("airspyHfAttenuation", 0, scope, dataStore)
+    val airspyHfLnaEnabled = Setting("airspyHfLnaEnabled", false, scope, dataStore)
+    val airspyHfConverterOffset = Setting("airspyHfConvertOffset", 0L, scope, dataStore)
     val hydraSdrAdvancedGainEnabled = Setting("hydraSdrAdvancedGainEnabled", false, scope, dataStore)
     val hydraSdrVgaGain = Setting("hydraSdrVgaGain", 10, scope, dataStore)
     val hydraSdrLnaGain = Setting("hydraSdrLnaGain", 10, scope, dataStore)
@@ -247,9 +265,27 @@ class AppStateRepository @Inject constructor(
     val controlDrawerSide = Setting("controlDrawerSide", ControlDrawerSide.RIGHT, scope, dataStore)
     val longPressHelpEnabled = Setting("longPressHelpEnabled", true, scope, dataStore)
     val reverseTuningWheel = Setting("reverseTuningWheel", false, scope, dataStore)
+    val enableLowPerformanceMode = Setting("enableLowPerformanceMode", false, scope, dataStore)
+    val lowPerformanceModeFilterQuality = Setting("lowPerformanceModeFilterQuality", 0.42f, scope, dataStore)
 
     // Recordings Screen
     val displayOnlyFavoriteRecordings = Setting("displayOnlyFavoriteRecordings", false, scope, dataStore)
+
+    // Station & Band Bookmarks
+    val bookmarkManagerScreenPage = MutableState(StationsPage.BOOKMARKLISTS)
+    val displayDefaultBandImportDialog = Setting("showDefaultBandImportDialog", true, scope, dataStore)
+    val displayBookmarkTutorial = Setting("showBookmarkTutorial", true, scope, dataStore)
+    val displayedLegacyImportDialog = Setting("displayedLegacyImportDialog", false, scope, dataStore)
+    val onlineStationDownloadState = EnumMap(OnlineStationProvider.entries.associateWith { MutableState<DownloadState>(DownloadState.Idle) })
+    val bookmarkListFilterSearchString = Setting("bookmarkListFilterSearchString", "", scope, dataStore)
+    val stationFilterForList = StationFilterSettings("list", scope, dataStore)
+    val bandFilterForList = BandFilterSettings("list", scope, dataStore)
+    val displayStationsInFft = Setting("displayStationsInFft", true, scope, dataStore)
+    val useCustomFftStationFilter = Setting("synchronizeStationFilters", true, scope, dataStore)
+    val stationFilterForFft = StationFilterSettings("fft", scope, dataStore)
+    val displayBandsInFft = Setting("displayStationsInFft", true, scope, dataStore)
+    val useCustomFftBandFilter = Setting("synchronizeBandFilters", true, scope, dataStore)
+    val bandFilterForFft = BandFilterSettings("fft", scope, dataStore)
 
     // Analyzer Surface
     val viewportFrequency =  Setting("viewportFrequency", 97000000L, scope, dataStore)
@@ -301,6 +337,85 @@ class AppStateRepository @Inject constructor(
 
     // --- Inner Helper Classes ----
 
+    inner class StationFilterSettings(
+        prefix: String,
+        scope: CoroutineScope,
+        dataStore: DataStore<Preferences>,
+    ) {
+        private val bookmarkLists = Setting("$prefix.stationFilterBookmarkLists", emptyList<Long>(), scope, dataStore)
+        private val search = Setting("$prefix.stationFilterSearch", "", scope, dataStore)
+        private val minFrequency = Setting("$prefix.stationFilterMinFrequency", 0L, scope, dataStore)
+        private val maxFrequency = Setting("$prefix.stationFilterMaxFrequency", 0L, scope, dataStore)
+        private val mode = Setting("$prefix.stationFilterMode", emptyList<String>(), scope, dataStore)
+        private val onlyFavorites = Setting("$prefix.stationFilterOnlyFavorites", false, scope, dataStore)
+        private val onlyOnAirNow = Setting("$prefix.stationFilterOnlyOnAirNow", false, scope, dataStore)
+        private val sources = Setting("$prefix.stationFilterSources", emptyList<String>(), scope, dataStore)
+        val state = DerivedState(
+            bookmarkLists,
+            search,
+            minFrequency,
+            maxFrequency,
+            mode,
+            onlyFavorites,
+            onlyOnAirNow,
+            sources,
+        ) {
+            StationFilter(
+                bookmarkLists = bookmarkLists.value.toSet(),
+                search = search.value,
+                minFrequency = minFrequency.value,
+                maxFrequency = maxFrequency.value,
+                mode = mode.value.mapNotNull { DemodulationMode.entries.firstOrNull { m -> m.name == it } }.toSet(),
+                onlyFavorites = onlyFavorites.value,
+                onlyOnAirNow = onlyOnAirNow.value,
+                sources = sources.value.mapNotNull { SourceProvider.entries.firstOrNull { s -> s.name == it } }.toSet()
+            )
+        }
+        fun set(filter: StationFilter) {
+            bookmarkLists.set(filter.bookmarkLists.toList())
+            search.set(filter.search)
+            minFrequency.set(filter.minFrequency)
+            maxFrequency.set(filter.maxFrequency)
+            mode.set(filter.mode.map { it.name })
+            onlyFavorites.set(filter.onlyFavorites)
+            onlyOnAirNow.set(filter.onlyOnAirNow)
+            sources.set(filter.sources.map { it.name })
+        }
+    }
+    inner class BandFilterSettings(
+        prefix: String,
+        scope: CoroutineScope,
+        dataStore: DataStore<Preferences>,
+    ) {
+        private val onlyFavorites = Setting("$prefix.bandFilterOnlyFavorites", false, scope, dataStore)
+        private val minFrequency = Setting("$prefix.bandFilterMinFrequency", 0L, scope, dataStore)
+        private val maxFrequency = Setting("$prefix.bandFilterMaxFrequency", 0L, scope, dataStore)
+        private val search = Setting("$prefix.bandFilterSearch", "", scope, dataStore)
+        private val bookmarkLists = Setting("$prefix.bandFilterBookmarkLists", emptyList<Long>(), scope, dataStore)
+        val state = DerivedState(
+            onlyFavorites,
+            minFrequency,
+            maxFrequency,
+            search,
+            bookmarkLists
+        ) {
+            BandFilter(
+                onlyFavorites = onlyFavorites.value,
+                minFrequency = minFrequency.value,
+                maxFrequency = maxFrequency.value,
+                search = search.value,
+                bookmarkLists = bookmarkLists.value.toSet()
+            )
+        }
+        fun set(filter: BandFilter) {
+            onlyFavorites.set(filter.onlyFavorites)
+            minFrequency.set(filter.minFrequency)
+            maxFrequency.set(filter.maxFrequency)
+            search.set(filter.search)
+            bookmarkLists.set(filter.bookmarkLists.toList())
+        }
+    }
+
     open class State<T>(initialValue: T) {
         protected val flow = MutableStateFlow(initialValue)
         val stateFlow: StateFlow<T>
@@ -328,7 +443,8 @@ class AppStateRepository @Inject constructor(
         private val keyName: String,
         default: T,
         scope: CoroutineScope,
-        dataStore: DataStore<Preferences>
+        dataStore: DataStore<Preferences>,
+        private val debugLogSet: Boolean = false
     ) : MutableState<T>(default) {
         init {
             settingsTotalCount++
@@ -376,18 +492,34 @@ class AppStateRepository @Inject constructor(
                             // Store lists as comma separated list (string)
                             val stringKey = stringPreferencesKey(keyName)
                             val stringValue = prefs[stringKey]
-                            val list = stringValue?.split(",")?.mapNotNull { it.toIntOrNull() } ?: default
-                            list as T
+                            if (stringValue == null)
+                                default as T
+                            else if (stringValue.length > 2 && stringValue[1] == ':') {
+                                // NEW FORMAT
+                                val payload = stringValue.substring(2)
+                                when (stringValue[0]) {
+                                    'I' -> payload.split(",").mapNotNull { it.toIntOrNull() }
+                                    'L' -> payload.split(",").mapNotNull { it.toLongOrNull() }
+                                    'S' -> payload.split("(?<!\\\\),".toRegex())
+                                        .map { it.replace("\\,", ",") }
+                                    else -> throw IllegalArgumentException("Unsupported list type in setting (setting: ${keyName}, listtype: ${stringValue[0]}")
+                                } as T
+                            }
+                            else {
+                                // LEGACY FORMAT (List<Int>) (RF Analyzer 2.1.1 and below)
+                                // Or just an empty list ("")
+                                stringValue.split(",").mapNotNull { it.toIntOrNull() } as T
+                            }
                         }
                         else -> {
-                            if (key == null) throw IllegalArgumentException("Unsupported setting type (setting: ${keyName}")
+                            if (key == null) throw IllegalArgumentException("Unsupported setting type (setting: ${keyName})")
                             else prefs[key] ?: default
                         }
                     }}
                     .firstOrNull()
 
                 if (saved != null) flow.value = saved
-                listeners.forEach { it(value) }
+                listeners.toList().forEach { it(value) } // Iterate over a copy to avoid ConcurrentModificationException
 
                 incrementSettingLoadedCounter()
 
@@ -400,7 +532,16 @@ class AppStateRepository @Inject constructor(
                         dataStore.edit { prefs ->
                             when (newValue) {
                                 is Enum<*> -> prefs[stringPreferencesKey(keyName + "Enum")] = newValue.name
-                                is List<*> -> prefs[stringPreferencesKey(keyName)] = newValue.joinToString(",")
+                                is List<*> -> {
+                                    prefs[stringPreferencesKey(keyName)] =
+                                        if (newValue.isEmpty()) ""
+                                        else when (newValue.first()) {
+                                            is Int -> "I:" + newValue.joinToString(",")
+                                            is Long -> "L:" + newValue.joinToString(",")
+                                            is String -> "S:" + newValue.joinToString(",") { (it as String).replace(",", "\\,") }
+                                            else -> throw IllegalArgumentException("Unsupported list element type (setting: ${keyName}): ${newValue.first()?.javaClass?.name}")
+                                        }
+                                }
                                 else -> key?.let { prefs[it] = newValue }
                             }
                         }
@@ -408,15 +549,17 @@ class AppStateRepository @Inject constructor(
             }
         }
 
-        //// Debugging:
-        //override fun set(value: T) {
-        //    Log.d("AppStateRepository [SET]", "set '${keyName}' = $value  (was ${flow.value})")
-        //    Throwable().stackTrace.forEachIndexed { index, element ->
-        //        if (element.className.startsWith("com.mantz_it."))
-        //            Log.d("AppStateRepository [SET]", "     #$index ${element.className}.${element.methodName} (${element.fileName}:${element.lineNumber})")
-        //    }
-        //    super.set(value)
-        //}
+        // Debugging:
+        override fun set(value: T) {
+            if(debugLogSet) {
+                Log.d("AppStateRepository [SET]", "set '${keyName}' = $value  (was ${flow.value})")
+                Throwable().stackTrace.forEachIndexed { index, element ->
+                    if (element.className.startsWith("com.mantz_it."))
+                        Log.d("AppStateRepository [SET]", "     #$index ${element.className}.${element.methodName} (${element.fileName}:${element.lineNumber})")
+                }
+            }
+            super.set(value)
+        }
     }
 
     // A subclass of State which represents a derived State from a set of States

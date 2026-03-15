@@ -55,7 +55,7 @@ import com.mantz_it.rfanalyzer.ui.composable.EditStringDialog
 import com.mantz_it.rfanalyzer.ui.composable.FilesourceFileFormat
 import com.mantz_it.rfanalyzer.ui.composable.asSizeInBytesToString
 import com.mantz_it.rfanalyzer.ui.composable.asStringWithUnit
-import com.mantz_it.rfanalyzer.ui.composable.letUserChooseDestinationFile
+import com.mantz_it.rfanalyzer.ui.composable.rememberCreateFilePicker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -106,11 +106,11 @@ fun RecordingCard(recording: Recording, recordingScreenActions: RecordingScreenA
     val colorScheme = MaterialTheme.colorScheme
     val backgroundColor = if (selected) colorScheme.secondary.copy(alpha = 0.2f) else colorScheme.surface
     val borderColor = if (selected) colorScheme.primary else Color.Transparent
-    val destinationFileChooserForSaveTo = letUserChooseDestinationFile(
+    val destinationFileChooserForSaveTo = rememberCreateFilePicker(
         suggestedFileName = recording.calculateFileName(),
         mimeType = "application/octet-stream",
         onAbort = { },
-        onDestinationChosen = { destUri -> recordingScreenActions.onSaveToStorage(recording, destUri) })
+        onFileCreated = { destUri -> recordingScreenActions.onSaveToStorage(recording, destUri) })
 
     var showEditDialog by remember { mutableStateOf(false) }
 
@@ -134,6 +134,7 @@ fun RecordingCard(recording: Recording, recordingScreenActions: RecordingScreenA
                                 FilesourceFileFormat.RTLSDR -> Color.Blue
                                 FilesourceFileFormat.HACKRF -> Color.Green
                                 FilesourceFileFormat.AIRSPY -> Color(alpha = 1f, red = 1f, green = 0.4f, blue = 0f) // orange
+                                FilesourceFileFormat.AIRSPYHF -> Color(alpha = 1f, red = 0.8f, green = 0.2f, blue = 0f) // darker orange
                                 FilesourceFileFormat.HYDRASDR -> Color(alpha = 1f, red = 1f, green = 0.4f, blue = 0f) // orange
                             },
                             shape = RoundedCornerShape(12.dp)
@@ -158,8 +159,11 @@ fun RecordingCard(recording: Recording, recordingScreenActions: RecordingScreenA
             Row{
                 Text(text = recording.sampleRate.asStringWithUnit("Sps"),
                     fontSize = 16.sp, modifier = Modifier.weight(1f))
-                val recordingDurationInSeconds = recording.sizeInBytes / recording.fileFormat.bytesPerSample / recording.sampleRate
-                Text(text = "${recording.sizeInBytes.asSizeInBytesToString()} ($recordingDurationInSeconds seconds)", fontSize = 16.sp)
+                val lengthStr = if (recording.sampleRate != 0L) {
+                    val recordingDurationInSeconds = recording.sizeInBytes / recording.fileFormat.bytesPerSample / recording.sampleRate
+                    "($recordingDurationInSeconds seconds)"
+                } else ""
+                Text(text = "${recording.sizeInBytes.asSizeInBytesToString()} $lengthStr", fontSize = 16.sp)
             }
 
             if(selected) {
@@ -279,7 +283,7 @@ fun RecordingCardPreview () {
             frequency = 103323000,
             sampleRate = 2000000,
             date = 1534567890000,
-            fileFormat = FilesourceFileFormat.RTLSDR,
+            fileFormat = FilesourceFileFormat.AIRSPYHF,
             sizeInBytes = 10 * 1024 * 1024,
             filePath = "abc://test",
             favorite = true
@@ -307,7 +311,7 @@ fun RecScreenPreview() {
         frequency = 103323000,
         sampleRate = 2000000,
         date = 1534567890000,
-        fileFormat = FilesourceFileFormat.HYDRASDR,
+        fileFormat = FilesourceFileFormat.AIRSPY,
         sizeInBytes = 10 * 1024 * 1024,
         filePath = "abc://test",
         favorite = true

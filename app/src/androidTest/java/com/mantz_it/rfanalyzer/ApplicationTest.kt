@@ -5,6 +5,8 @@ import android.test.ApplicationTestCase
 import com.mantz_it.rfanalyzer.dsp.ComplexFirFilter
 import com.mantz_it.rfanalyzer.dsp.FirFilter.Companion.createLowPass
 import com.mantz_it.rfanalyzer.source.SamplePacket
+import com.mantz_it.rfanalyzer.ui.composable.toTimeSpanString
+import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -15,6 +17,30 @@ class ApplicationTest : ApplicationTestCase<Application?>(Application::class.jav
     @Throws(Exception::class)
     public override fun setUp() {
         super.setUp()
+    }
+
+    fun testLocation() {
+        val locales = Locale.getISOCountries()
+            .map { code -> Locale("", code) }
+            .sortedBy { it.displayCountry }
+        fun localeToString(locale: Locale): String {
+            return "${locale.displayCountry} (${locale.country})"
+        }
+        for (locale in locales) {
+            println("\"${locale.country}\" to \"${locale.displayName}\",")
+        }
+    }
+
+    fun testTimeSpanToString() {
+        val duration = 4L * 24 * 60 * 60 * 1000 +
+                11L * 60 * 60 * 1000 +
+                1L * 60 * 1000 +
+                53L * 1000
+        val text = duration.toTimeSpanString()
+        assertEquals("4 days, 11 hours, 1 minute and 53 seconds", text)
+
+        //val duration2 = 4L * 24 * 60 * 60 * 1000 + 11L * 60 * 1000
+        //assertEquals(getUsageTimeStr(duration2.toInt()/1000), duration2.toTimeSpanString())
     }
 
     fun testFirFilter() {

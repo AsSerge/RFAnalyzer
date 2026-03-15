@@ -20,6 +20,7 @@ nav:
   - FFT & Waterfall Display: fft.md
   - Signal Demodulation: demodulation.md
   - Recording & Playback: recording.md
+  - Bookmarks: bookmarks.md
   - App Settings: settings.md
   - Additional Information: advanced.md
   - Troubleshooting & FAQs: troubleshooting.md

@@ -40,7 +40,8 @@ import kotlin.math.atan2
 class Demodulator(
     inputQueue: ArrayBlockingQueue<SamplePacket>,   // Queue that delivers received baseband signals
     inputReturnQueue: ArrayBlockingQueue<SamplePacket>,  // Queue to return used buffers from the inputQueue
-    packetSize: Int                                 // Size of the packets in the input queue
+    packetSize: Int,                                 // Size of the packets in the input queue
+    lowPowerformanceMode: Boolean = false           // Flag to enable low performance mode
 ) : Thread() {
 
     companion object {
@@ -68,6 +69,13 @@ class Demodulator(
     }
 
     private var stopRequested = true
+
+    var filterQuality: Float = 1f
+        set(value) {
+            val coercedVal = value.coerceIn(0.01f, 1f)
+            field = coercedVal
+            resampler.maxTaps = (filterQuality*500).toInt()
+        }
 
     // Channel Filter
     private var userFilter: FirFilter? = null
@@ -100,10 +108,10 @@ class Demodulator(
         }
 
     // RESAMPLING (input sample rate --> QUADRATURE_RATE)
-    private val resampler = Resampler(demodulationMode.quadratureRate, packetSize, inputQueue, inputReturnQueue)
+    private val resampler = Resampler(demodulationMode.quadratureRate, packetSize, inputQueue, inputReturnQueue, (filterQuality*500).toInt())
 
     // AUDIO OUTPUT
-    private var audioSink: AudioSink = AudioSink(packetSize, AUDIO_RATE) // Will do QUADRATURE_RATE --> AUDIO_RATE and audio output
+    private var audioSink: AudioSink = AudioSink(packetSize, AUDIO_RATE, lowPowerformanceMode) // Will do QUADRATURE_RATE --> AUDIO_RATE and audio output
     var audioVolumeLevel = 1f        // Audio Volume (0 is mute and 1 is full volume)
 
     /**
@@ -375,8 +383,9 @@ class Demodulator(
                 input.sampleRate.toFloat(),
                 CW_OFFSET_FREQUENCY - channelWidth/2.0f,
                 CW_OFFSET_FREQUENCY + channelWidth/2.0f,
-                input.sampleRate * 0.01f,
-                BAND_PASS_ATTENUATION.toFloat()
+                channelWidth * 0.2f,
+                BAND_PASS_ATTENUATION.toFloat(),
+                2000
             )
             if (bandPassFilter == null) return  // This may happen if input samples changed rate or demodulation was turned off. Just skip the filtering.
 

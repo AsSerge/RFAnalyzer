@@ -14,8 +14,11 @@ import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.GestureDetector
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.SurfaceHolder
@@ -39,7 +42,12 @@ import kotlin.math.max
 import kotlin.math.min
 import com.mantz_it.rfanalyzer.R
 import com.mantz_it.rfanalyzer.analyzer.FftProcessorData
+import com.mantz_it.rfanalyzer.database.BandWithBookmarkList
 import com.mantz_it.rfanalyzer.database.GlobalPerformanceData
+import com.mantz_it.rfanalyzer.database.SourceProvider
+import com.mantz_it.rfanalyzer.database.StationWithBookmarkList
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * <h1>RF Analyzer - Analyzer Surface (FFT/Waterfall View)</h1>
@@ -74,7 +82,39 @@ data class AnalyzerSurfaceActions(
     val onViewportVerticalScaleChanged: (Pair<Float, Float>) -> Unit,  // former minDB, maxDB
     val onChannelFrequencyChanged: (newFrequency: Long) -> Unit,
     val onChannelWidthChanged: (newWidth: Int) -> Unit,
-    val onSquelchChanged: (newSquelch: Float) -> Unit
+    val onSquelchChanged: (newSquelch: Float) -> Unit,
+    val onStationsClicked: (stationIds: Set<Long>, longPress: Boolean) -> Unit,
+)
+
+// helper classes for drawing the station/band labels
+data class StationLabel(
+    val stationIds: Set<Long>,
+    val name: String,
+    val frequency: Long,
+    val x: Float,
+    val widthPx: Float,
+    val layer: Int,
+    val mergedCount: Int = 1,
+    val color: Int = Color.DKGRAY
+)
+data class BandLabel(
+    val id: Long,
+    val name: String,
+    val freqStart: Long,
+    val freqEnd: Long,
+    val xStart: Float,
+    val xEnd: Float,
+    val layer: Int,
+    val color: Int,
+    val subBands: List<SubBandLabel>
+)
+
+data class SubBandLabel(
+    val name: String,
+    val freqStart: Long,
+    val freqEnd: Long,
+    val xStart: Float,
+    val xEnd: Float
 )
 
 class AnalyzerSurface(context: Context,
@@ -114,6 +154,10 @@ class AnalyzerSurface(context: Context,
                       private val squelchSatisfied: AppStateRepository.State<Boolean>,
                       private val isFullVersion: AppStateRepository.State<Boolean>,
                       private val fftProcessorData: FftProcessorData,
+                      private val stationListFlow: StateFlow<List<StationWithBookmarkList>>,
+                      private val bandListFlow: StateFlow<List<BandWithBookmarkList>>,
+                      private val displayStationsInFft: AppStateRepository.State<Boolean>,
+                      private val displayBandsInFft: AppStateRepository.State<Boolean>,
                       private val analyzerSurfaceActions: AnalyzerSurfaceActions) : SurfaceView(context){
 
     companion object {
@@ -155,21 +199,58 @@ class AnalyzerSurface(context: Context,
         }
     private val channelSelectorDragHandlePosition: Pair<Float, Float> // vertical position of the drag handles (in dB; first: channel handle; second: channelWidth handle)
         get() {
-            // handles should be at 1/3 distance from the top if squelch is below half and vice versa
             val minDB = viewportVerticalScaleMin.value
             val maxDB = viewportVerticalScaleMax.value
             val viewportHeightInDb = maxDB - minDB
             val centerHandlePosition: Float
             val outerHandlePosition: Float
-            if(squelch.value < minDB + viewportHeightInDb/2) {
-                centerHandlePosition = maxDB - viewportHeightInDb * 0.35f
-                outerHandlePosition = maxDB - viewportHeightInDb * 0.2f
+            if(squelch.value < minDB + viewportHeightInDb*0.35f) {
+                centerHandlePosition = minDB + viewportHeightInDb * 0.55f
+                outerHandlePosition = minDB + viewportHeightInDb * 0.45f
             } else {
-                centerHandlePosition = minDB + viewportHeightInDb * 0.35f
+                centerHandlePosition = minDB + viewportHeightInDb * 0.3f
                 outerHandlePosition = minDB + viewportHeightInDb * 0.2f
             }
             return Pair(centerHandlePosition, outerHandlePosition)
         }
+
+    // Get X coordinate (Px) from frequency
+    fun freqToX(freq: Long): Float = ((freq - viewportStartFrequency.value).toFloat() / viewportSampleRate.value.toFloat()) * width
+
+    private var stationList: List<StationWithBookmarkList>? = null
+    private var stationLabels: List<StationLabel>? = null
+    private var bandList: List<BandWithBookmarkList>? = null
+    private var bandLabels: List<BandLabel>? = null
+
+    // Handle Station Label Clicks (long press or simple click)
+    private val LONG_PRESS_THRESHOLD = 300L // ms
+    private var pressedLabel: StationLabel? = null
+    private var longPressTriggered = false
+    private val longPressHandler = Handler(Looper.getMainLooper())
+    private val longPressRunnable = Runnable {
+        pressedLabel?.let { label ->
+            longPressTriggered = true
+            this@AnalyzerSurface.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS) // Trigger haptic feedback
+            analyzerSurfaceActions.onStationsClicked(label.stationIds, true)
+            pressedLabel = null
+        }
+    }
+    private fun cancelLongPressRunnable() {
+        longPressHandler.removeCallbacks(longPressRunnable)
+        pressedLabel = null
+    }
+    private val labelDebouncedUpdateHandler = Handler(Looper.getMainLooper())
+    private val labelDebouncedUpdateRunnable = Runnable {
+        updateStationLabels()
+        updateBandLabels()
+    }
+    private fun debouncedLabelUpdate() {
+        // Cancel pending update
+        labelDebouncedUpdateHandler.removeCallbacks(labelDebouncedUpdateRunnable)
+
+        // Schedule new update
+        labelDebouncedUpdateHandler.postDelayed(labelDebouncedUpdateRunnable, 250) // 250ms debounce
+    }
 
     // scroll type stores the intention of the user on a pointer down event:
     enum class ScrollType() {
@@ -273,6 +354,18 @@ class AnalyzerSurface(context: Context,
         override fun onShowPress(e: MotionEvent) { }
 
         override fun onSingleTapUp(e: MotionEvent): Boolean {
+            // Check if the last down-tap was already handled as a long press:
+            if (longPressTriggered) return true
+            cancelLongPressRunnable() // cancel any ongoing long press timers
+
+            // check if the user tapped on a station label:
+            val stationLabel = findStationLabelAt(e.x, e.y)
+            if (stationLabel != null) {
+                Log.d(LOGTAG, "onSingleTapUp: tapped on ${stationLabel.name} @ ${stationLabel.frequency} (IDs: ${stationLabel.stationIds})")
+                analyzerSurfaceActions.onStationsClicked(stationLabel.stationIds, false)
+                return true
+            }
+
             // Set the channel frequency to the tapped position
             if (demodulationEnabled.value) {
                 val hzPerPx = viewportSampleRate.value / width.toFloat()
@@ -366,6 +459,7 @@ class AnalyzerSurface(context: Context,
                     this@AnalyzerSurface.height = height
                     drawingThread?.apply { updateFftPaint() }
                     drawingThread?.apply { updateTextPaint() }
+                    debouncedLabelUpdate()
                 }
             }
 
@@ -403,7 +497,8 @@ class AnalyzerSurface(context: Context,
                 //Log.d(LOGTAG, "observeAppState: calling onViewportFrequencyChanged(${sourceFrequency.value})")
                 analyzerSurfaceActions.onViewportFrequencyChanged(sourceFrequency.value)
                 //Log.d(LOGTAG, "observeAppState: calling onViewportSampleRateChanged(${sourceSampleRate.value}) [two]")
-                analyzerSurfaceActions.onViewportSampleRateChanged(sourceSampleRate.value)
+                if (viewportSampleRate.value > sourceSampleRate.value)
+                    analyzerSurfaceActions.onViewportSampleRateChanged(sourceSampleRate.value)
             }
             // if the viewport is a bit to much on the right we shift it left:
             if (viewportEndFrequency.value > sourceSignalEndFrequency.value) {
@@ -422,13 +517,75 @@ class AnalyzerSurface(context: Context,
         }
         coroutineScope.collectAppState(sourceFrequency) { updateViewport() }
         coroutineScope.collectAppState(sourceSampleRate) { updateViewport() }
-        coroutineScope.collectAppState(fftWaterfallRatio) { drawingThread?.apply { updateFftPaint() } }
-        coroutineScope.collectAppState(fontSize) { drawingThread?.apply { updateTextPaint() } }
+        coroutineScope.collectAppState(fftWaterfallRatio) {
+            drawingThread?.apply { updateFftPaint() }
+            debouncedLabelUpdate()
+        }
+        coroutineScope.collectAppState(fontSize) {
+            drawingThread?.apply { updateTextPaint() }
+            debouncedLabelUpdate()
+        }
         coroutineScope.collectAppState(waterfallColorMap) { drawingThread?.createWaterfallColorMap(it) }
         coroutineScope.collectAppState(fftDrawingType) { drawingThread?.apply { updateFftPaint() } }
         coroutineScope.collectAppState(squelchSatisfied) { drawingThread?.squelchPaint?.color = if(it) Color.GREEN else Color.RED }
         coroutineScope.collectAppState(isFullVersion) { drawingThread?.drawWatermark() }  // redraw the watermark
+        coroutineScope.launch {
+            stationListFlow.collect { newStationList ->
+                stationList = newStationList
+                debouncedLabelUpdate()
+            }
+        }
+        coroutineScope.launch {
+            bandListFlow.collect { newBandList ->
+                bandList = newBandList
+                debouncedLabelUpdate()
+            }
+        }
+        coroutineScope.collectAppState(displayStationsInFft) { debouncedLabelUpdate() }
+        coroutineScope.collectAppState(displayBandsInFft) { debouncedLabelUpdate() }
+        coroutineScope.collectAppState(viewportFrequency) { debouncedLabelUpdate() }
+        coroutineScope.collectAppState(viewportSampleRate) { debouncedLabelUpdate() }
     }
+
+    private fun updateStationLabels() {
+        val drawingThread = drawingThread
+        val stationList = stationList
+        if (stationList != null && displayStationsInFft.value) {
+            // calculate number of layers based on the current font size and fft height
+            val heightNorm = ((fftHeight - 500f) / 600f).coerceIn(0f, 1f) // normalize FFT height: 0 at 500px, 1 at 1100px
+            val sizeNorm = ((50f - fontSize.value.stationLabelFontSize) / 20f).coerceIn(0f, 1f)      // normalize font size: 0 at 50px, 1 at 30px
+            val score = (heightNorm*10f + sizeNorm) / 11f // combine both, height has more influence
+            val layersCount = (1f + 6f * score).toInt().coerceIn(1, 7) // map to 1..7 range
+            val newStationLabels = layoutStationsForFft(
+                stations = stationList,
+                layerCount = layersCount,
+                textSize = fontSize.value.stationLabelFontSize
+            )
+            stationLabels = newStationLabels
+            drawingThread?.stationListHasChanged = true
+        }
+    }
+    private fun updateBandLabels() {
+        val drawingThread = drawingThread
+        val bands = bandList
+
+        if (bands != null && displayBandsInFft.value) {
+
+            val heightNorm = ((fftHeight - 500f) / 600f).coerceIn(0f, 1f)
+            val sizeNorm = ((50f - fontSize.value.bandLabelFontSize) / 20f).coerceIn(0f, 1f)
+            val score = (heightNorm * 10f + sizeNorm) / 11f
+            val layers = (1f + 6f * score).toInt().coerceIn(1, 7)
+
+            val newLabels = layoutBandsForFft(
+                bands = bands,
+                layerCount = layers,
+                textSize = fontSize.value.bandLabelFontSize
+            )
+            bandLabels = newLabels
+            drawingThread?.bandListHasChanged = true
+        }
+    }
+
 
     /**
      * Will cause the surface to automatically adjust the dB scale at the
@@ -440,6 +597,23 @@ class AnalyzerSurface(context: Context,
 
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // Start timer for long press on down press:
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            pressedLabel = findStationLabelAt(event.x, event.y)
+            longPressTriggered = false
+            pressedLabel?.let {
+                longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_THRESHOLD) // Schedule long press if down on label
+            }
+        }
+
+        // If finger moved off label -> cancel long press
+        if (event.action == MotionEvent.ACTION_MOVE) {
+            if (pressedLabel != null && !isInsideStationLabel(event.x, event.y, pressedLabel!!)) {
+                pressedLabel = null
+                cancelLongPressRunnable()
+            }
+        }
+
         // Reset the stroke width of the channel controls if the user lifts his finger:
         if (event.action == MotionEvent.ACTION_UP) {
             drawingThread?.squelchPaint?.strokeWidth = STROKE_WIDTH_SQUELCH
@@ -451,6 +625,232 @@ class AnalyzerSurface(context: Context,
         var retVal = scaleGestureDetector.onTouchEvent(event)
         retVal = gestureDetector.onTouchEvent(event) || retVal
         return retVal
+    }
+
+    // Helper for station/band label rendering
+    fun abbreviateTextToFit(
+        text: String,
+        paint: Paint,
+        maxWidth: Float
+    ): String {
+        if (paint.measureText(text) <= maxWidth) return text
+        val ellipsis = "…"
+        if (paint.measureText(ellipsis) > maxWidth) return "" // cannot show anything
+
+        // binary search for max chars
+        var low = 0
+        var high = text.length
+        var best = ellipsis
+
+        while (low <= high) {
+            val mid = (low + high) / 2
+            val candidate = text.take(mid) + ellipsis
+            if (paint.measureText(candidate) <= maxWidth) {
+                best = candidate
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return best
+    }
+
+    /**
+     * Places station labels in layers within a frequency viewport.
+     * If a label doesn't fit in any layer, truncation is attempted.
+     * If still not possible → merge.
+     */
+    private fun layoutStationsForFft(
+        stations: List<StationWithBookmarkList>,
+        layerCount: Int,
+        textSize: Float,
+        minTextLength: Int = 4
+    ): List<StationLabel> {
+        if (stations.isEmpty()) return emptyList()
+        val sorted = stations.sortedByDescending { it.station.frequency } // right → left
+        val layerLeftEdges = FloatArray(layerCount) { Float.MAX_VALUE }
+        val results = mutableListOf<StationLabel>()
+        val paint = Paint().apply{ this.textSize = textSize }
+
+        for ((station, bookmarkList) in sorted) {
+            // check if station with same name & frequency is already placed; if yes: merge:
+            val duplicateStationIdx = results.indexOfFirst { it.name == station.name && it.frequency == station.frequency }
+            if (duplicateStationIdx >= 0) {
+                val duplicateStation = results[duplicateStationIdx]
+                results[duplicateStationIdx] = duplicateStation.copy(
+                    stationIds = duplicateStation.stationIds + station.id,
+                    mergedCount = duplicateStation.mergedCount + 1
+                )
+                continue
+            }
+            val color = when(station.source) {
+                SourceProvider.BOOKMARK -> bookmarkList?.color ?: SourceProvider.BOOKMARK.color
+                else -> station.source.color
+            }
+            val xLeft = freqToX(station.frequency)
+            val nameFull = station.name.ifBlank { "?" }
+            val boxWidth = paint.measureText(nameFull) + 20f
+            val xRight = xLeft + boxWidth
+
+            // Try fitting in any layer
+            var placed = false
+            var bestLayer = -1
+            var maxFreeSpace = Float.NEGATIVE_INFINITY
+
+            for (layer in 0 until layerCount) {
+                val freeSpace = layerLeftEdges[layer] - xLeft
+                if (xRight < layerLeftEdges[layer]) {
+                    // fits fully
+                    results.add(StationLabel(
+                        stationIds = setOf(station.id),
+                        name = nameFull,
+                        frequency = station.frequency,
+                        x = xLeft,
+                        widthPx = boxWidth,
+                        layer = layer,
+                        color = color)
+                    )
+                    layerLeftEdges[layer] = xLeft - 10f
+                    placed = true
+                    break
+                } else if (freeSpace > maxFreeSpace) {
+                    // track layer with most room for possible truncation
+                    bestLayer = layer
+                    maxFreeSpace = freeSpace
+                }
+            }
+
+            // Try truncation only in the most spacious layer
+            if (!placed && bestLayer >= 0 && maxFreeSpace > 30f) {
+                var truncated = nameFull
+                var fit = false
+                while (truncated.length > minTextLength) {
+                    truncated = truncated.dropLast(1)
+                    val truncatedName = "$truncated…"
+                    val truncatedWidth = paint.measureText(truncatedName) + 20f
+                    val xRightTruncated = xLeft + truncatedWidth
+                    if (xRightTruncated < layerLeftEdges[bestLayer]) {
+                        results.add(
+                            StationLabel(
+                                stationIds = setOf(station.id),
+                                name = truncatedName,
+                                frequency = station.frequency,
+                                x = xLeft,
+                                widthPx = boxWidth,
+                                layer = bestLayer,
+                                color = color
+                            )
+                        )
+                        layerLeftEdges[bestLayer] = xLeft - 10f
+                        fit = true
+                        placed = true
+                        break
+                    }
+                }
+                if (!fit) placed = false
+            }
+
+            // If still not placed → merge
+            if (!placed) {
+                val last = results.lastOrNull()
+                if (last != null) {
+                    results[results.lastIndex] = last.copy(
+                        stationIds = last.stationIds + station.id,
+                        name = "<${last.mergedCount + 1}>…",
+                        mergedCount = last.mergedCount + 1
+                    )
+                }
+            }
+        }
+        return results
+    }
+
+    fun layoutBandsForFft(
+        bands: List<BandWithBookmarkList>,
+        layerCount: Int,
+        textSize: Float
+    ): List<BandLabel> {
+        val raw = bands.map { band ->
+            val xStart = freqToX(band.band.startFrequency)
+            val xEnd = freqToX(band.band.endFrequency)
+            Triple(band, xStart, xEnd)
+        }.sortedBy { it.second } // sort by xStart
+        val layers = Array(layerCount) { mutableListOf<BandLabel>() }
+        val results = mutableListOf<BandLabel>()
+        val paint = Paint().apply{ this.textSize = textSize }
+
+        for ((band, xStart, xEnd) in raw) {
+            // visible width (clipped)
+            val boxWidth = (xEnd - xStart).coerceAtLeast(0f)
+
+            val nameFitted = abbreviateTextToFit(
+                text = band.band.name,
+                paint = paint,
+                maxWidth = boxWidth - 20f   // left/right padding
+            )
+
+            // choose smallest free layer
+            var layerIndex = 0
+            while (layerIndex < layerCount) {
+                val layer = layers[layerIndex]
+                val collision = layer.any { other ->
+                    // interval overlap?
+                    val a1 = xStart
+                    val a2 = xEnd
+                    val b1 = other.xStart
+                    val b2 = other.xEnd
+                    a1 < b2 && b1 < a2
+                }
+                if (!collision) break
+                layerIndex++
+            }
+            if (layerIndex == layerCount) continue // skip label if no layer free
+
+            val color = band.bookmarkList?.color ?: Color.DKGRAY
+
+            // subbands:
+            val subLabels = band.band.subBands.map { sb ->
+                val sx = freqToX(sb.startFrequency)
+                val ex = freqToX(sb.endFrequency)
+                SubBandLabel(
+                    name = sb.name,
+                    freqStart = sb.startFrequency,
+                    freqEnd = sb.endFrequency,
+                    xStart = sx,
+                    xEnd = ex
+                )
+            }
+
+
+            val label = BandLabel(
+                id = band.band.id,
+                name = nameFitted,
+                freqStart = band.band.startFrequency,
+                freqEnd = band.band.endFrequency,
+                xStart = xStart,
+                xEnd = xEnd,
+                layer = layerIndex,
+                color = color,
+                subBands = subLabels
+            )
+            layers[layerIndex].add(label)
+            results.add(label)
+        }
+
+        return results
+    }
+
+    private fun isInsideStationLabel(x: Float, y: Float, label: StationLabel): Boolean {
+        val boxHeight = (drawingThread?.stationPaint?.textSize ?: 40f) + 10f
+        val stationLayerY = fftHeight/2.5f
+        val boxTop = stationLayerY - (label.layer + 1) * (boxHeight + 10f)
+        val boxBottom = boxTop + boxHeight
+        val boxLeft = label.x
+        val boxRight = label.x + label.widthPx
+        return x in boxLeft..boxRight && y in boxTop..boxBottom
+    }
+    private fun findStationLabelAt(x: Float, y: Float): StationLabel? {
+        return stationLabels?.firstOrNull { label -> isInsideStationLabel(x, y, label)}
     }
 
     //
@@ -471,6 +871,12 @@ class AnalyzerSurface(context: Context,
         val channelSelectorPaint: Paint = Paint()       // Paint object to draw the area of the channel
         val channelWidthSelectorPaint: Paint = Paint()  // Paint object to draw the borders of the channel
         val squelchPaint: Paint = Paint()               // Paint object to draw the squelch selector
+        val stationPaint: Paint = Paint()               // Paint object to draw the station labels
+        val bandPaint: Paint = Paint()                  // Paint object to draw the subbands
+        val subBandPaint: Paint = Paint()               // Paint object to draw the subbands
+        val bandBorderPaint: Paint = Paint()            // Paint object to draw the band borders
+        val bandPinPaint: Paint = Paint()               // Paint object to draw the band marker pins
+        val labelLinePaint = Paint()
         private val leftRightArrowDrawable = ContextCompat.getDrawable(context, R.drawable.left_right_arrow_icon)
         private val topBottomArrowDrawable = ContextCompat.getDrawable(context, R.drawable.top_bottom_arrow_icon)
         private var fftPath: Path = Path()                  // Path object to draw the fft lines
@@ -487,20 +893,56 @@ class AnalyzerSurface(context: Context,
         private var lastMaxDB: Float = 0f
         private var lastViewportFrequency: Long = 0
         private var lastViewportSampleRate: Long = 0
+        var stationListHasChanged = true   // indicates whether the station labels in the AnalyzerSurface have been changed recently and need to be redrawn
+        var bandListHasChanged = true
 
         init {
-            blackPaint.color = Color.BLACK
-            fftPaint.color = Color.BLUE
-            peakHoldPaint.color = Color.YELLOW
-            peakHoldPaint.style = Paint.Style.FILL
-            peakHoldPaint.strokeWidth = 2f
-            textPaint.color = Color.WHITE
-            textPaint.isAntiAlias = true
-            textSmallPaint.color = Color.WHITE
-            textSmallPaint.isAntiAlias = true
-            channelSelectorPaint.color = Color.YELLOW
-            channelWidthSelectorPaint.color = Color.WHITE
-            squelchPaint.color = if (squelchSatisfied.value) Color.GREEN else Color.RED
+            blackPaint.apply { color = Color.BLACK }
+            fftPaint.apply { color = Color.BLUE }
+            peakHoldPaint.apply {
+                color = Color.YELLOW
+                style = Paint.Style.FILL
+                strokeWidth = 2f
+            }
+            textPaint.apply {
+                color = Color.WHITE
+                isAntiAlias = true
+            }
+            textSmallPaint.apply {
+                color = Color.WHITE
+                isAntiAlias = true
+            }
+            channelSelectorPaint.apply { color = Color.YELLOW }
+            channelWidthSelectorPaint.apply { color = Color.WHITE }
+            squelchPaint.apply { color = if (squelchSatisfied.value) Color.GREEN else Color.RED }
+            stationPaint.apply {
+                color = Color.WHITE
+                isAntiAlias = true
+            }
+            bandPaint.apply {
+                color = Color.WHITE
+                isAntiAlias = true
+            }
+            subBandPaint.apply {
+                color = Color.WHITE
+                isAntiAlias = true
+            }
+            bandBorderPaint.apply {
+                color = Color.BLACK
+                style = Paint.Style.STROKE
+                strokeWidth = 1.5f
+                isAntiAlias = true
+            }
+            bandPinPaint.apply {
+                color = Color.WHITE
+                strokeWidth = 2f
+                isAntiAlias = true
+            }
+            labelLinePaint.apply {
+                style = Paint.Style.STROKE
+                color = Color.GRAY
+                strokeWidth = 2f
+            }
 
             // Create the color map for the waterfall plot
             this.createWaterfallColorMap(waterfallColorMap.value)
@@ -558,7 +1000,8 @@ class AnalyzerSurface(context: Context,
                         if (waterfallBuffer != null &&
                             waterfallBufferDirtyMap != null &&
                             frequency != null &&
-                            sampleRate != null
+                            sampleRate != null &&
+                            sampleRate != 0L
                         ) {
                             doDraw = true
 
@@ -760,9 +1203,23 @@ class AnalyzerSurface(context: Context,
                 fftGridCanvas!!.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
                 drawFrequencyGrid(fftGridCanvas!!)
                 drawPowerGrid(fftGridCanvas!!)
+                // draw the station/band labels:
+                val stationLabels = stationLabels
+                if(stationLabels != null && displayStationsInFft.value) {
+                    drawStationLabels(fftGridCanvas!!, stationLabels, baseY = fftHeight.toFloat(), stationLayerY = fftHeight/2.5f)
+                    stationListHasChanged = false
+                }
+                val bandLabels = bandLabels
+                if(bandLabels != null && displayBandsInFft.value) {
+                    drawBandLabels(fftGridCanvas!!, bandLabels, bandLayerY = fftHeight - gridSize*0.7f)
+                    bandListHasChanged = false
+                }
+                if (demodulationEnabled.value) {
+                    drawDemodulationChannel(fftGridCanvas!!)
+                }
                 // save the current state:
                 fftGridBitmapState["fftHeight"] = fftHeight
-                fftGridBitmapState["fontSize"] = fontSize
+                fftGridBitmapState["fontSize"] = fontSize.value
                 fftGridBitmapState["scrollType"] = scrollType
                 fftGridBitmapState["virtualSampleRate"] = viewportSampleRate.value
                 fftGridBitmapState["virtualFrequency"] = viewportFrequency.value
@@ -781,6 +1238,8 @@ class AnalyzerSurface(context: Context,
                 fftGridBitmapState["channelWidthSelectorStrokeWidth"] = channelWidthSelectorPaint.strokeWidth
                 fftGridBitmapState["showUpperBand"] = demodulationMode.value != DemodulationMode.USB
                 fftGridBitmapState["showLowerBand"] = demodulationMode.value != DemodulationMode.LSB
+                fftGridBitmapState["displayStationsInFft"] = displayStationsInFft.value
+                fftGridBitmapState["displayBandsInFft"] = displayBandsInFft.value
             }
 
             // Draw:
@@ -830,6 +1289,8 @@ class AnalyzerSurface(context: Context,
         private fun hasFftGridChanged(): Boolean {
             if (!fftGridBitmapState.containsKey("fftHeight"))  // test if hashmap was initialized with values already
                 return true
+            if (stationListHasChanged)
+                return true
             return !(fftGridBitmapState["fftHeight"] == fftHeight &&
                     fftGridBitmapState["fontSize"] == fontSize &&
                     fftGridBitmapState["scrollType"] == scrollType &&
@@ -849,7 +1310,10 @@ class AnalyzerSurface(context: Context,
                     fftGridBitmapState["channelSelectorStrokeWidth"] == channelSelectorPaint.strokeWidth &&
                     fftGridBitmapState["channelWidthSelectorStrokeWidth"] == channelWidthSelectorPaint.strokeWidth &&
                     fftGridBitmapState["showUpperBand"] == (demodulationMode.value != DemodulationMode.USB) &&
-                    fftGridBitmapState["showLowerBand"] == (demodulationMode.value != DemodulationMode.LSB))
+                    fftGridBitmapState["showLowerBand"] == (demodulationMode.value != DemodulationMode.LSB) &&
+                    fftGridBitmapState["displayStationsInFft"] == displayStationsInFft.value &&
+                    fftGridBitmapState["displayBandsInFft"] == displayBandsInFft.value
+                )
         }
 
         /**
@@ -858,7 +1322,6 @@ class AnalyzerSurface(context: Context,
          * @param c                canvas of the surface view
          */
         private fun drawFrequencyGrid(c: Canvas) {
-            val showLowerBand = demodulationMode.value != DemodulationMode.USB
             val showUpperBand = demodulationMode.value != DemodulationMode.LSB
             val minDB = viewportVerticalScaleMin.value
             val maxDB = viewportVerticalScaleMax.value
@@ -946,71 +1409,76 @@ class AnalyzerSurface(context: Context,
                 tickPos += pixelPerMinorTick
                 i++
             }
+        }
 
-            // If demodulation is activated: draw channel selector:
-            if (demodulationEnabled.value) {
-                val squelchEnabled = squelchEnabled.value
-                val pxPerHz = width / virtualSampleRate.toFloat()
-                val channelPosition = width / 2 + pxPerHz * (channelFrequency.value - virtualFrequency)
-                val leftBorder = width / 2 + pxPerHz * (channelStartFrequency.value - virtualFrequency)
-                val rightBorder = width / 2 + pxPerHz * (channelEndFrequency.value - virtualFrequency)
-                //val leftBorder = channelPosition - pxPerHz * channelWidth.value
-                //val rightBorder = channelPosition + pxPerHz * channelWidth.value
-                val dbWidth = fftHeight / (maxDB - minDB)
-                val squelchYPosition = if(squelchEnabled) fftHeight - (squelch.value - minDB) * dbWidth else fftHeight.toFloat()
-                val squelchXPosition = if(showUpperBand) rightBorder else leftBorder
-                val (centerDragHandlePositionDb, outerDragHandlePositionDb) = channelSelectorDragHandlePosition
-                val centerDragHandleYPosition = fftHeight - (centerDragHandlePositionDb-minDB)*dbWidth
-                val outerDragHandleYPosition = fftHeight - (outerDragHandlePositionDb-minDB)*dbWidth
+        private fun drawDemodulationChannel(c: Canvas) {
+            val showUpperBand = demodulationMode.value != DemodulationMode.LSB
+            val minDB = viewportVerticalScaleMin.value
+            val maxDB = viewportVerticalScaleMax.value
+            val virtualFrequency = viewportFrequency.value
+            val virtualSampleRate = viewportSampleRate.value
+            var textStr: String
+            val squelchEnabled = squelchEnabled.value
+            val pxPerHz = width / virtualSampleRate.toFloat()
+            val channelPosition = width / 2 + pxPerHz * (channelFrequency.value - virtualFrequency)
+            val leftBorder = width / 2 + pxPerHz * (channelStartFrequency.value - virtualFrequency)
+            val rightBorder = width / 2 + pxPerHz * (channelEndFrequency.value - virtualFrequency)
+            //val leftBorder = channelPosition - pxPerHz * channelWidth.value
+            //val rightBorder = channelPosition + pxPerHz * channelWidth.value
+            val dbWidth = fftHeight / (maxDB - minDB)
+            val squelchYPosition = if(squelchEnabled) fftHeight - (squelch.value - minDB) * dbWidth else fftHeight.toFloat()
+            val squelchXPosition = if(showUpperBand) rightBorder else leftBorder
+            val (centerDragHandlePositionDb, outerDragHandlePositionDb) = channelSelectorDragHandlePosition
+            val centerDragHandleYPosition = fftHeight - (centerDragHandlePositionDb-minDB)*dbWidth
+            val outerDragHandleYPosition = fftHeight - (outerDragHandlePositionDb-minDB)*dbWidth
 
-                // draw half transparent channel area:
-                channelWidthSelectorPaint.alpha = 0x40
-                c.drawRect(leftBorder, 0f, rightBorder, squelchYPosition, channelWidthSelectorPaint)
-                channelWidthSelectorPaint.alpha = 0xff
+            // draw half transparent channel area:
+            channelWidthSelectorPaint.alpha = 0x40
+            c.drawRect(leftBorder, 0f, rightBorder, squelchYPosition, channelWidthSelectorPaint)
+            channelWidthSelectorPaint.alpha = 0xff
 
-                // draw outer borders
-                c.drawLine(leftBorder, fftHeight.toFloat(), leftBorder, 0f, channelWidthSelectorPaint)
-                c.drawLine(rightBorder, fftHeight.toFloat(), rightBorder, 0f, channelWidthSelectorPaint)
-                // draw center
-                c.drawLine(channelPosition, fftHeight.toFloat(), channelPosition, 0f,channelSelectorPaint)
+            // draw outer borders
+            c.drawLine(leftBorder, fftHeight.toFloat(), leftBorder, 0f, channelWidthSelectorPaint)
+            c.drawLine(rightBorder, fftHeight.toFloat(), rightBorder, 0f, channelWidthSelectorPaint)
+            // draw center
+            c.drawLine(channelPosition, fftHeight.toFloat(), channelPosition, 0f,channelSelectorPaint)
 
-                // draw channel drag handle
-                val dragHandleBounds = RectF(channelPosition - 30f, centerDragHandleYPosition - 15f, channelPosition + 30f, centerDragHandleYPosition + 15f)
-                c.drawOval(dragHandleBounds, channelSelectorPaint)
-                leftRightArrowDrawable?.bounds = Rect(dragHandleBounds.left.toInt() + 5, dragHandleBounds.top.toInt() + 5, dragHandleBounds.right.toInt() - 5, dragHandleBounds.bottom.toInt() - 5)
-                leftRightArrowDrawable?.draw(c)
+            // draw channel drag handle
+            val dragHandleBounds = RectF(channelPosition - 30f, centerDragHandleYPosition - 15f, channelPosition + 30f, centerDragHandleYPosition + 15f)
+            c.drawOval(dragHandleBounds, channelSelectorPaint)
+            leftRightArrowDrawable?.bounds = Rect(dragHandleBounds.left.toInt() + 5, dragHandleBounds.top.toInt() + 5, dragHandleBounds.right.toInt() - 5, dragHandleBounds.bottom.toInt() - 5)
+            leftRightArrowDrawable?.draw(c)
 
-                // draw channel width drag handle
-                val channelWidthHandleBounds = RectF(squelchXPosition - 30f, outerDragHandleYPosition - 15f, squelchXPosition + 30f, outerDragHandleYPosition + 15f)
-                c.drawOval(channelWidthHandleBounds, channelWidthSelectorPaint)
-                leftRightArrowDrawable?.bounds = Rect(channelWidthHandleBounds.left.toInt() + 5, channelWidthHandleBounds.top.toInt() + 5, channelWidthHandleBounds.right.toInt() - 5, channelWidthHandleBounds.bottom.toInt() - 5)
-                leftRightArrowDrawable?.draw(c)
+            // draw channel width drag handle
+            val channelWidthHandleBounds = RectF(squelchXPosition - 30f, outerDragHandleYPosition - 15f, squelchXPosition + 30f, outerDragHandleYPosition + 15f)
+            c.drawOval(channelWidthHandleBounds, channelWidthSelectorPaint)
+            leftRightArrowDrawable?.bounds = Rect(channelWidthHandleBounds.left.toInt() + 5, channelWidthHandleBounds.top.toInt() + 5, channelWidthHandleBounds.right.toInt() - 5, channelWidthHandleBounds.bottom.toInt() - 5)
+            leftRightArrowDrawable?.draw(c)
 
-                // draw squelch
-                if (squelchEnabled) {
-                    c.drawLine(leftBorder, squelchYPosition, rightBorder, squelchYPosition, squelchPaint)
+            // draw squelch
+            if (squelchEnabled) {
+                c.drawLine(leftBorder, squelchYPosition, rightBorder, squelchYPosition, squelchPaint)
 
-                    // draw squelch text above the squelch selector:
-                    textStr = String.format("%2.1f dB", squelch.value)
-                    textSmallPaint.getTextBounds(textStr, 0, textStr.length, bounds)
-                    c.drawText(textStr, channelPosition - bounds.width() / 2f, squelchYPosition - bounds.height() * 0.1f, textSmallPaint)
+                // draw squelch text above the squelch selector:
+                textStr = String.format("%2.1f dB", squelch.value)
+                textSmallPaint.getTextBounds(textStr, 0, textStr.length, bounds)
+                c.drawText(textStr, channelPosition - bounds.width() / 2f, squelchYPosition - bounds.height() * 0.1f, textSmallPaint)
 
-                    // draw drag handle on squelch
-                    val squelchHandleBounds = RectF(squelchXPosition - 15f, squelchYPosition - 30f, squelchXPosition + 15f, squelchYPosition + 30f)
-                    c.drawOval(squelchHandleBounds, squelchPaint)
-                    topBottomArrowDrawable?.bounds = Rect(squelchHandleBounds.left.toInt() + 5, squelchHandleBounds.top.toInt() + 5, squelchHandleBounds.right.toInt() - 5, squelchHandleBounds.bottom.toInt() - 5)
-                    topBottomArrowDrawable?.draw(c)
+                // draw drag handle on squelch
+                val squelchHandleBounds = RectF(squelchXPosition - 15f, squelchYPosition - 30f, squelchXPosition + 15f, squelchYPosition + 30f)
+                c.drawOval(squelchHandleBounds, squelchPaint)
+                topBottomArrowDrawable?.bounds = Rect(squelchHandleBounds.left.toInt() + 5, squelchHandleBounds.top.toInt() + 5, squelchHandleBounds.right.toInt() - 5, squelchHandleBounds.bottom.toInt() - 5)
+                topBottomArrowDrawable?.draw(c)
 
-                    // draw channel width text below the squelch selector:
-                    val channelWidthValue = channelWidth.value
-                    textStr = if (channelWidthValue >= 10000) {
-                        String.format("%d kHz", channelWidthValue / 1000)
-                    } else {
-                        String.format("%.1f kHz", channelWidthValue / 1000.0)
-                    }
-                    textSmallPaint.getTextBounds(textStr, 0, textStr.length, bounds)
-                    c.drawText(textStr, channelPosition - bounds.width() / 2f, squelchYPosition + bounds.height() * 1.1f, textSmallPaint)
+                // draw channel width text below the squelch selector:
+                val channelWidthValue = channelWidth.value
+                textStr = if (channelWidthValue >= 10000) {
+                    String.format("%d kHz", channelWidthValue / 1000)
+                } else {
+                    String.format("%.1f kHz", channelWidthValue / 1000.0)
                 }
+                textSmallPaint.getTextBounds(textStr, 0, textStr.length, bounds)
+                c.drawText(textStr, channelPosition - bounds.width() / 2f, squelchYPosition + bounds.height() * 1.1f, textSmallPaint)
             }
         }
 
@@ -1042,6 +1510,11 @@ class AnalyzerSurface(context: Context,
                     tickWidth = (gridSize / 3.0).toFloat()
                     // Draw Frequency Text:
                     c.drawText("" + tickDB, (gridSize / 2.9).toFloat(), tickPos, textPaint)
+                    // Draw grid line across the entire FFT plot:
+                    val savedColor = textPaint.color
+                    textPaint.color = (savedColor and 0x00ffffff) or 0x44000000
+                    c.drawLine(0f, tickPos, width.toFloat(), tickPos, textPaint)
+                    textPaint.color = savedColor
                 } else if (tickDB % 5 == 0) {
                     // 5 dB tick
                     tickWidth = (gridSize / 3.5).toFloat()
@@ -1163,6 +1636,154 @@ class AnalyzerSurface(context: Context,
             }
         }
 
+
+        private fun drawStationLabels(
+            canvas: Canvas,
+            labels: List<StationLabel>,
+            baseY: Float,
+            stationLayerY: Float
+        ) {
+            val boxHeight = stationPaint.textSize + 10f
+
+            for (label in labels) {
+                val x = freqToX(label.frequency)
+                val boxTop = stationLayerY - (label.layer + 1) * (boxHeight + 10f)
+                val boxBottom = boxTop + boxHeight
+                val textX = x + 10f
+                val textY = boxBottom - 13f
+                val boxWidth = stationPaint.measureText(label.name) + 20f
+
+                // Draw line to frequency grid
+                canvas.drawLine(x, baseY, x, boxTop + boxHeight/2, labelLinePaint)
+
+                // Draw box
+                val boxRect = RectF(x, boxTop, x + boxWidth, boxBottom)
+                stationPaint.color = ((label.color.toLong() and 0x00FFFFFFL) or 0xCC000000L).toInt()  // set alpha to 0xCC
+                canvas.drawRoundRect(boxRect, 8f, 8f, stationPaint)
+
+                // Draw border
+                if (pressedLabel == label) {
+                    val origColor = labelLinePaint.color
+                    val origStrokeWidth = labelLinePaint.strokeWidth
+                    labelLinePaint.apply { color = Color.WHITE; strokeWidth = 8f }
+                    canvas.drawRoundRect(boxRect, 8f, 8f, labelLinePaint)
+                    labelLinePaint.apply { color = origColor; strokeWidth = origStrokeWidth }
+                } else {
+                    canvas.drawRoundRect(boxRect, 8f, 8f, labelLinePaint)
+                }
+
+                // Draw text
+                stationPaint.color = Color.WHITE
+                canvas.drawText(label.name, textX, textY, stationPaint)
+            }
+        }
+
+        private fun drawBandLabels(
+            canvas: Canvas,
+            labels: List<BandLabel>,
+            bandLayerY: Float
+        ) {
+            fun visibleSegment(start: Float, end: Float, leftBound: Float = 0f, rightBound: Float): Pair<Float, Float> {
+                val s = start.coerceAtLeast(leftBound)
+                val e = end.coerceAtMost(rightBound)
+                return s to e
+            }
+
+            val widthPx = canvas.width.toFloat()
+
+            val bandNamePaddingTop = 4f
+            val bandNameHeight = bandPaint.textSize
+            val subBandHeight = subBandPaint.textSize
+            val subBandSpacing = 12f
+
+            val boxHeight = bandNamePaddingTop + bandNameHeight + subBandSpacing + subBandHeight
+
+            for (label in labels) {
+
+                val boxTop = bandLayerY - (label.layer + 1) * (boxHeight + 12f)
+                val boxBottom = boxTop + boxHeight
+
+                val bandXStart = freqToX(label.freqStart)
+                val bandXEnd = freqToX(label.freqEnd)
+
+                val bandRect = RectF(bandXStart, boxTop, bandXEnd, boxBottom)
+
+                // Visible (clipped) segment for correct text positioning
+                val (visibleStart, visibleEnd) =
+                    visibleSegment(bandXStart, bandXEnd, rightBound = widthPx)
+
+                // Draw band background
+                bandPaint.color = ((label.color.toLong() and 0x00FFFFFF) or 0x55000000).toInt()
+                canvas.drawRoundRect(bandRect, 10f, 10f, bandPaint)
+
+                // --- Draw Band Name (centered in visible region) ---
+                val fullName = label.name
+                val visWidth = (visibleEnd - visibleStart).coerceAtLeast(0f)
+
+                val bandNameFitted = if (bandPaint.measureText(fullName) <= visWidth - 20f) fullName
+                                     else abbreviateTextToFit(fullName, bandPaint, visWidth - 20f)
+
+                val bandTextWidth = bandPaint.measureText(bandNameFitted)
+                val textX = visibleStart + (visWidth - bandTextWidth) / 2f
+                val textY = boxTop + bandNamePaddingTop + bandNameHeight
+
+                bandPaint.color = Color.WHITE
+                canvas.drawText(bandNameFitted, textX, textY, bandPaint)
+
+                // --- Subband vertical region ---
+                val sbTop = boxBottom - subBandHeight
+                val sbBottom = boxBottom
+
+                for (sb in label.subBands) {
+                    val sbFullStart = freqToX(sb.freqStart)
+                    val sbFullEnd = freqToX(sb.freqEnd)
+                    val (sbVisibleStart, sbVisibleEnd) = visibleSegment(sbFullStart, sbFullEnd, rightBound = widthPx)
+                    val fullWidth = sbFullEnd - sbFullStart
+                    val visWidthSb = sbVisibleEnd - sbVisibleStart
+
+                    // ---- Case #1: normal subband (> minimum width) ----
+                    if (fullWidth >= 6f) {
+
+                        val sbRect = RectF(sbFullStart, sbTop, sbFullEnd, sbBottom)
+
+                        val sbColor = ((label.color.toLong() and 0x00FFFFFF) or 0x66000000).toInt()
+                        bandPaint.color = sbColor
+                        canvas.drawRoundRect(sbRect, 4f, 4f, bandPaint)
+
+                        // Draw border for separation
+                        canvas.drawRoundRect(sbRect, 4f, 4f, bandBorderPaint)
+
+                        // Draw subband name inside visible area
+                        val fittedName =
+                            abbreviateTextToFit(sb.name, subBandPaint, visWidthSb - 6f)
+
+                        val tWidth = subBandPaint.measureText(fittedName)
+                        val tx = sbVisibleStart + (visWidthSb - tWidth) / 2f
+                        val ty = sbBottom - 4f
+
+                        subBandPaint.color = Color.WHITE
+                        canvas.drawText(fittedName, tx, ty, subBandPaint)
+                    }
+
+                    // ---- Case #2: marker subband (zero-width or tiny width) ----
+                    else if (visWidth > width/3) { // draw markers only if band is zoomed in
+                        val pinX = sbFullStart   // same as sbFullEnd when degenerate
+                        canvas.drawLine(pinX, sbTop, pinX, sbBottom, bandPinPaint) // Draw vertical pin as marker
+
+                        // Pill label for marker
+                        val pillText = abbreviateTextToFit(sb.name, subBandPaint, 150f)
+                        val textW = subBandPaint.measureText(pillText)
+                        val pillWidth = max(textW + 12f, 24f)
+                        val pillLeft = (pinX - pillWidth / 2f).coerceAtLeast(0f)
+                        val pillTextX = pillLeft + (pillWidth - textW) / 2f
+                        val pillTextY = sbBottom - subBandHeight - 2f
+                        subBandPaint.color = Color.WHITE
+                        canvas.drawText(pillText, pillTextX, pillTextY, subBandPaint)
+                    }
+                }
+            }
+        }
+
         /**
          * Will populate the waterfallColorMap array with color instances
          */
@@ -1198,6 +1819,9 @@ class AnalyzerSurface(context: Context,
             }
             textPaint.textSize = normalTextSize
             textSmallPaint.textSize = smallTextSize
+            stationPaint.textSize = fontSize.value.stationLabelFontSize
+            bandPaint.textSize = fontSize.value.bandLabelFontSize
+            subBandPaint.textSize = fontSize.value.subBandLabelFontSize
             Log.i(
                 LOGTAG, "setFontSize: X-dpi=${resources.displayMetrics.xdpi} X-width=${resources.displayMetrics.widthPixels}" +
                         "  fontSize=${fontSize}  normalTextSize=${normalTextSize} smallTextSize=${smallTextSize}"

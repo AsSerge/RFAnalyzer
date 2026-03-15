@@ -89,14 +89,6 @@ fun AboutScreen(versionName: String, navController: NavController) {
                         }
                 }
             )
-            //AndroidView(
-            //    factory = { context -> TextView(context).apply {
-            //        text = Html.fromHtml(htmlText, Html.FROM_HTML_MODE_LEGACY)
-            //        setTextAppearance(android.R.style.TextAppearance_Small)
-            //        movementMethod = LinkMovementMethod.getInstance() // Enables link clicking
-            //    } },
-            //    modifier = Modifier.fillMaxWidth()
-            //)
         }
     }
 }

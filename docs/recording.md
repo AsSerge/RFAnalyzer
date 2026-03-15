@@ -95,8 +95,18 @@ Tap a recording card to reveal the following actions:
 - Download Recording File to Folder
 - Mark Recording as Favorite
 
-The file format of the recordings is identical to the files created by the
-`rtl_sdr` and `hackrf_transfer` commands on PC.
+!!! info "File Format"
+    The file format of the recordings is identical to the files created by the
+    `rtl_sdr`, `hackrf_transfer`, etc. commands on PC. This means it contains
+    the raw samples received directly from the SDR device without any conversions.
+
+!!! tip "Import Recordings into SDR#"
+    SDR# uses the WAV Fileformat. There are converters for the raw IQ files to the
+    SDR# WAV format. A python converter script for HackRF IQ files is available in
+    the [Tools directory of the RF Analyzer GitHub
+    Repository](https://github.com/demantz/RFAnalyzer/blob/master/tools/prepWAV.py).
+    For RTL-SDR IQ files there is a tool called
+    [iqtosharp](https://github.com/Marcin648/iqToSharp).
 
 --- 
 

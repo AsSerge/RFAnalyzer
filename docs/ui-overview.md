@@ -55,6 +55,9 @@ expanded or collapsed by dragging.
 - **About** - App version, acknowledgments and licencing. Also contains
   purchase options and debug settings.
 
+A [Bookmark Manager screen](./bookmarks.md) can be accessed via the button
+floating above the control drawer or from the demodulation tab.
+
 Let’s start with the [Source Tab](./sdr-source.md), which is the first step in setting up your
 analyzer.
 

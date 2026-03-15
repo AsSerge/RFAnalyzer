@@ -22,6 +22,8 @@ dependencyResolutionManagement {
 rootProject.name = "RFAnalyzer"
 include(":app")
 include(":nativedsp")
+include(":libhackrf")
 include(":libairspy")
 include(":libusb")
 include(":libhydrasdr")
+include(":libairspyhf")

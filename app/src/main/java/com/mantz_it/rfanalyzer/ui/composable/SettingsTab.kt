@@ -1,6 +1,7 @@
 package com.mantz_it.rfanalyzer.ui.composable
 
 import android.net.Uri
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -58,10 +59,17 @@ enum class ScreenOrientation(val displayName: String) {
     REVERSE_LANDSCAPE("Reverse Landscape")
 }
 
-enum class FontSize(val displayName: String) {
-    SMALL("Small"),
-    NORMAL("Normal"),
-    LARGE("Large")
+enum class FontSize(val displayName: String, val stationLabelFontSize: Float) {
+    SMALL("Small", 30f),
+    NORMAL("Normal", 40f),
+    LARGE("Large", 50f)
+
+    ;
+
+    val bandLabelFontSize: Float
+        get() = stationLabelFontSize * 0.65f
+    val subBandLabelFontSize: Float
+        get() = stationLabelFontSize * 0.55f
 }
 
 enum class ControlDrawerSide(val displayName: String) {
@@ -76,6 +84,8 @@ data class SettingsTabActions(
     val onLongPressHelpEnabledChanged: (Boolean) -> Unit,
     val onControlDrawerSideChanged: (ControlDrawerSide) -> Unit,
     val onReverseTuningWheelChanged: (Boolean) -> Unit,
+    val onEnableLowPerformanceModeChanged: (Boolean) -> Unit,
+    val onLowPerformanceModeFilterQualityChanged: (Float) -> Unit,
     val onRtlsdrAllowOutOfBoundFrequencyChanged: (Boolean) -> Unit,
     val onShowDebugInformationChanged: (Boolean) -> Unit,
     val onLoggingEnabledChanged: (Boolean) -> Unit,
@@ -94,16 +104,18 @@ fun SettingsTabComposable(
     longPressHelpEnabled: Boolean,
     reverseTuningWheel: Boolean,
     controlDrawerSide: ControlDrawerSide,
+    enableLowPerformanceMode: Boolean,
+    lowPerformanceModeFilterQuality: Float,
     rtlsdrAllowOutOfBoundFrequency: Boolean,
     showDebugInformation: Boolean,
     loggingEnabled: Boolean,
     settingsTabActions: SettingsTabActions
 ) {
-    val destinationFileChooser = letUserChooseDestinationFile(
+    val destinationFileChooser = rememberCreateFilePicker(
         suggestedFileName = LogcatLogger.logfileName,
         mimeType = "text/plain",
         onAbort = { },
-        onDestinationChosen = { destUri -> settingsTabActions.onSaveLogToFileClicked(destUri) })
+        onFileCreated = { destUri -> settingsTabActions.onSaveLogToFileClicked(destUri) })
     ScrollableColumnWithFadingEdge {
         OutlinedEnumDropDown(
             label = "Screen Orientation",
@@ -151,6 +163,28 @@ fun SettingsTabComposable(
             onSelectionChanged = settingsTabActions.onControlDrawerSideChanged,
             helpSubPath = "settings.html#control-drawer-alignment-landscape"
         )
+        OutlinedSwitch(
+            label = "Low-Performance Mode",
+            helpText = "This mode reduces the CPU load of the application. Use it on older, less capable devices. Restart Analyzer after changing this setting. Then reduce the filter quality until the audio does not stutter anymore. Aliasing will increase though.",
+            isChecked = enableLowPerformanceMode,
+            onCheckedChange = settingsTabActions.onEnableLowPerformanceModeChanged,
+            helpSubPath = "settings.html#low-performance-mode",
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 15.dp)) {
+                Text("Signal Filter Quality:")
+                OutlinedSlider(
+                    label = "",
+                    unit = "%",
+                    unitInLabel = false,
+                    minValue = 1f,
+                    maxValue = 99f,
+                    decimalPlaces = 0,
+                    value = lowPerformanceModeFilterQuality * 100,
+                    onValueChanged = { value -> settingsTabActions.onLowPerformanceModeFilterQualityChanged(value/100) },
+                    showOutline = false
+                )
+            }
+        }
         OutlinedSwitch(
             label = "Allow Out-of-Bound Frequency (RTL-SDR)",
             helpText = "Allow all frequency values for RTL-SDR, even if not originally supported by the Tuner (Enable for RTL-SDR Blog v4!)",
@@ -248,7 +282,11 @@ fun SettingsTabPreview() {
                     onSaveLogToFileClicked = { },
                     onShareLogClicked = { },
                     onDeleteLogClicked = { },
+                    onEnableLowPerformanceModeChanged = {},
+                    onLowPerformanceModeFilterQualityChanged = {},
                 ),
+                enableLowPerformanceMode = true,
+                lowPerformanceModeFilterQuality = 0.7f,
             )
         }
     }

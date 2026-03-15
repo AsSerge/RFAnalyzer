@@ -1,20 +1,24 @@
 # What’s New
 
-RF Analyzer 2.0 is here!
+RF Analyzer 2.2 is here!
 
-The app has been completely rewritten from scratch. It now features a modern
-Material Design UI, a more powerful and intuitive interface, and improved
-performance across the board.
-
-- Support for demodulation while app is in the background
-- Improved stability, demodulation and recording features
-- Integrated user manual and contextual help
-- Added support for RTL-SDR Blog v4
+- Station & Band Bookmarks:
+  - Import from SDR#, SDR++ and legacy RF Analyzer 1.13 lists
+  - Online station lists: EiBi, POTA & SOTA Spots
+  - Band Plans: Amateur Radio, ISM, Maritime and Air Bands
+- Support for Airspy HF+ SDR
+- RTL-SDR Direct Sampling Support
+- Switched from hackrf_android to libhackrf v0.10.0
+- Upgraded to libhydrasdr 1.1.1
+- Low Performance Mode Switch: Reduce Filter Quality to run smoother on older devices
+- Bug Fixes:
+  - Device Crash
+  - Export Recordings without freezing on large recordings
 
 
 DESCRIPTION 
 
-Analyze RF signals on Android with HackRF, RTL-SDR, Airspy and HydraSDR.
+Analyze RF signals on Android with HackRF, RTL-SDR, Airspy (HF+) and HydraSDR.
 
 RF Analyzer turns your Android device into a real-time spectrum analyzer for Software Defined Radio (SDR). Visualize and listen to radio signals around you - from amateur radio to broadcast signals and beyond.
 
@@ -22,17 +26,19 @@ Whether you're a curious beginner or a seasoned ham, RF Analyzer offers a hands-
 
 FEATURES
 
-- Works with HackRF, RTL-SDR, Airspy, HydraSDR or pre-recorded IQ files
+- Works with HackRF, RTL-SDR, Airspy, Airspy HF+, HydraSDR or pre-recorded IQ files
 - View live spectrum (FFT) and waterfall plots
 - Demodulate AM, FM, SSB, and CW signals
 - Record raw IQ samples for offline analysis
+- Comprehensive Bookmark Manager for Stations (Frequencies) and Bands
+- Download and Synchronize EiBi Shortwave Radio Database, POTA & SOTA Spots
 - A responsive and modern Material Design interface
 - Scroll, zoom, and tune through the bands
 - Built-in context-aware help and a full offline in-app manual
 
 PRICING
 
-You can try all features for free with a 7-day trial and up to 60 minutes of analyzer usage.
+You can try all features for free within the 60 minutes test period (only actual analyzer usage counts - so enough time to test out all features with all your devices).
 
 If you like it, a one-time in-app purchase unlocks the full version - no subscriptions, no accounts, no ads.
 
@@ -41,8 +47,8 @@ This app is a hobby project, built with passion and countless hours of work. Sup
 REQUIREMENTS
 
 - Android phone or tablet (with USB OTG support)
-- Supported SDR hardware (HackRF, RTL-SDR, Airspy or HydraSDR)
-  - Note: The RTL-SDR Blog v4 is fully supported.
+- Supported SDR hardware (HackRF, RTL-SDR, Airspy, Airspy HF+ or HydraSDR)
+  - Note: RTL-SDR Blog v4 and RTL-SDR Direct Sampling are fully supported.
 - USB OTG adapter (USB-A female to USB-C for modern phones)
   - This is not necessary for SDRs with USB-C connector (e.g. the HydraSDR)
 

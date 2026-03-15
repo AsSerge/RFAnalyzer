@@ -3,9 +3,11 @@ package com.mantz_it.rfanalyzer.ui.composable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
@@ -224,7 +226,7 @@ fun DisplayTabComposable(
                 helpSubPath = "fft.html#waterfall-speed"
             )
         }
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             OutlinedSwitch(
                 label = "Peak Hold",
                 helpText = "Show dot indicators for the highest signal strength",

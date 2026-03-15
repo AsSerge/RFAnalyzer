@@ -1,9 +1,13 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.android.devtools)
     alias(libs.plugins.dagger.hilt)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.androidx.room)
 }
 
 android {
@@ -14,8 +18,8 @@ android {
         applicationId = "com.mantz_it.rfanalyzer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 20107
-        versionName = "2.1.1"
+        versionCode = 20205
+        versionName = "2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -53,9 +57,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -64,6 +65,16 @@ android {
     useLibrary("android.test.base")
     useLibrary("android.test.runner")
     useLibrary("android.test.mock")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
+    }
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 // Build static site from /docs and make it available in the app's assets:
@@ -85,7 +96,6 @@ tasks.named("preBuild") {
 }
 
 dependencies {
-    implementation(files("lib/hackrf_android.aar"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -99,14 +109,23 @@ dependencies {
     implementation(libs.androidx.media3.common.ktx)
     implementation(libs.androidx.localbroadcastmanager)
     implementation(project(":nativedsp"))
+    implementation(project(":libhackrf"))
     implementation(project(":libairspy"))
+    implementation(project(":libairspyhf"))
     implementation(project(":libhydrasdr"))
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.foundation.android)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.paging)
     implementation(libs.androidx.material3.android)
     implementation(libs.androidx.datastore.core.android)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.sqlite.ktx)
+    implementation(libs.androidx.compose.runtime.saveable)
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.runtime.ktx)
+    implementation(libs.androidx.paging.compose)
+    implementation(libs.androidx.compose.animation)
     annotationProcessor(libs.androidx.room.compiler)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.common)
@@ -117,7 +136,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.security.crypto)
     implementation(libs.dagger.hilt)
+    implementation(libs.hilt.navigation.compose)
     ksp(libs.dagger.hilt.compiler)
+    implementation(libs.kotlinx.serialization.json)
 
     // Flavor-specific dependencies:
     add("playImplementation", libs.billing)  // "play" is the flavor

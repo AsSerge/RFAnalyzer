@@ -35,7 +35,7 @@ dropdown menu.
 
 Please have a look at the following sections to learn more about all [elements
 of the UI](./ui-overview.md), [SDR Source Tab](./sdr-source.md), [Display Tab (FFT settings)](./fft.md) and
-[demodulation](./demodulation.md) settings, [signal recording](./recording.md)
+[demodulation](./demodulation.md) settings, [signal recording](./recording.md), [bookmarks](./bookmarks.md)
 and more. If you have trouble with the app, have a look at the
 [troubleshooting](./troubleshooting.md) section!
 

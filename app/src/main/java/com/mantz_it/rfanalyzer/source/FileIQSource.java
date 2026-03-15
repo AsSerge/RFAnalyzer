@@ -46,6 +46,8 @@ public class FileIQSource implements IQSourceInterface {
 	private int packetSize = 0;
 	private long startTime = 0;				// timestamp (in ns) when the source was started
 	private long bytesRead = 0;             // total bytes read from file since source start
+    private long lastTooSlowErrorMsgTimestamp = 0; // timestamp of the last error message 'too slow for actual sample rate'
+    private int tooSlowErrorMsgMissedCount = 0;    // number of supressed 'too slow for actual sample rate' msgs
 	private long lastPacketAccessTime = 0;  // only for debugging
 	private byte[] buffer = null;
 	private Uri uri = null;
@@ -57,6 +59,8 @@ public class FileIQSource implements IQSourceInterface {
 	public static final int FILE_FORMAT_8BIT_SIGNED = 0;
 	public static final int FILE_FORMAT_8BIT_UNSIGNED = 1;
 	public static final int FILE_FORMAT_16BIT_SIGNED = 2;
+	public static final int FILE_FORMAT_16BIT_UNSIGNED = 3;
+	public static final int FILE_FORMAT_32BIT_FLOAT = 4;
 
 	public FileIQSource() {
 	}
@@ -70,23 +74,7 @@ public class FileIQSource implements IQSourceInterface {
 		this.frequency = frequency;
 		this.packetSize = packetSize;
 		this.buffer = new byte[packetSize];
-
-		switch (fileFormat) {
-			case FILE_FORMAT_8BIT_SIGNED:
-				iqConverter = new Signed8BitIQConverter();
-				break;
-			case FILE_FORMAT_8BIT_UNSIGNED:
-				iqConverter = new Unsigned8BitIQConverter();
-				break;
-			case FILE_FORMAT_16BIT_SIGNED:
-				iqConverter = new Signed16BitIQConverter();
-				break;
-			default:
-				Log.e(LOGTAG, "constructor: Invalid file format: " + fileFormat);
-				break;
-		}
-		iqConverter.setFrequency(frequency);
-		iqConverter.setSampleRate(sampleRate);
+		this.setFileFormat(fileFormat);
 		return true;
 	}
 
@@ -241,6 +229,12 @@ public class FileIQSource implements IQSourceInterface {
 			case FILE_FORMAT_16BIT_SIGNED:
 				newIqConverter = new Signed16BitIQConverter();
 				break;
+			case FILE_FORMAT_16BIT_UNSIGNED:
+				Log.e(LOGTAG, "constructor: 16-bit unsigned not yet supported!");
+				break;
+			case FILE_FORMAT_32BIT_FLOAT:
+				newIqConverter = new Float32IQConverter();
+				break;
 			default:
 				Log.e(LOGTAG, "setFileFormat: Invalid file format: " + fileFormat);
 				break;
@@ -308,7 +302,10 @@ public class FileIQSource implements IQSourceInterface {
 			case FILE_FORMAT_8BIT_UNSIGNED:
 				return 2;
 			case FILE_FORMAT_16BIT_SIGNED:
+			case FILE_FORMAT_16BIT_UNSIGNED:
 				return 4;
+			case FILE_FORMAT_32BIT_FLOAT:
+				return 8;
 			default:
 				Log.e(LOGTAG, "getBytesPerSample: Invalid file format: " + fileFormat);
 				return 0;
@@ -355,8 +352,15 @@ public class FileIQSource implements IQSourceInterface {
 				long millis = sleep / 1000000;
 				int nanos = (int)(sleep % 1000000);
 				Thread.sleep(millis, nanos);
-			} else
-				Log.w(LOGTAG, "getPacket: To slow for actual sample rate! sleep=" + sleep + " (bytesRead: " + bytesRead + ")");
+			} else {
+                if (System.currentTimeMillis() - lastTooSlowErrorMsgTimestamp > 5000) { // only print every 5 seconds
+                    Log.w(LOGTAG, "getPacket: To slow for actual sample rate! sleep=" + sleep + " (bytesRead: " + bytesRead + ") [suppressed log lines: " + tooSlowErrorMsgMissedCount + "]");
+                    tooSlowErrorMsgMissedCount = 0;
+                    lastTooSlowErrorMsgTimestamp = System.currentTimeMillis();
+                } else {
+                    tooSlowErrorMsgMissedCount++;
+                }
+            }
 
 		} catch (IOException e) {
 			Log.e(LOGTAG, "getPacket: Error while reading from file: " + e.getMessage());

@@ -369,7 +369,7 @@ static int airspy_callback(airspy_transfer *transfer) {
     JNIEnv *env = nullptr;
 
     if (g_airspyDeviceObj == nullptr) {
-        LOGE("airspy_callback: g_airspyDeviceObj is null");
+        LOGE("airspy_callback: g_airspyHFDeviceObj is null");
         return 0;
     }
 

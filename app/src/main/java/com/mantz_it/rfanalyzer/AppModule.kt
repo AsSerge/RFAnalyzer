@@ -1,16 +1,25 @@
 package com.mantz_it.rfanalyzer
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.widget.Toast
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.mantz_it.rfanalyzer.database.AppDatabase
 import com.mantz_it.rfanalyzer.database.AppStateRepository
+import com.mantz_it.rfanalyzer.database.BandDao
 import com.mantz_it.rfanalyzer.database.BillingRepository
 import com.mantz_it.rfanalyzer.database.BillingRepositoryInterface
+import com.mantz_it.rfanalyzer.database.BookmarkListDao
+import com.mantz_it.rfanalyzer.database.CURRENT_DB_SCHEMA_VERSION
 import com.mantz_it.rfanalyzer.database.MockedBillingRepository
+import com.mantz_it.rfanalyzer.database.OnlineStationProviderSettingsDao
 import com.mantz_it.rfanalyzer.database.RecordingDao
+import com.mantz_it.rfanalyzer.database.StationDao
+import com.mantz_it.rfanalyzer.database.StationRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -54,17 +63,43 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        val dbName = "recordings_db" // For historic reasons, this is called recordings_db, but it also holds all other db data
+
+        val dbFile = context.getDatabasePath(dbName)
+        if (dbFile.exists()) {
+            val db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+            val version = db.version
+            db.close()
+            if (version > CURRENT_DB_SCHEMA_VERSION) {
+                Log.d("AppModule", "Database Schema too new ($version > $CURRENT_DB_SCHEMA_VERSION).")
+                Toast.makeText(context, "Database Version too new ($version > $CURRENT_DB_SCHEMA_VERSION): Update App or clear App Data!", Toast.LENGTH_LONG).show()
+                Thread.sleep(3000)
+            }
+        }
+
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
-            "recordings_db"
-        ).build()
+            dbName
+        )
+        //.addMigrations(MIGRATION_1_2) // 1 -> 2 is done via AutoMigration (see AppDatabase.kt)
+        .build()
     }
 
     @Provides
-    fun provideRecordingDao(db: AppDatabase): RecordingDao {
-        return db.recordingDao()
-    }
+    fun provideRecordingDao(db: AppDatabase): RecordingDao = db.recordingDao()
+
+    @Provides
+    fun provideStationDao(db: AppDatabase): StationDao = db.stationDao()
+
+    @Provides
+    fun provideBandDao(db: AppDatabase): BandDao = db.bandDao()
+
+    @Provides
+    fun provideBookmarkListDao(db: AppDatabase): BookmarkListDao = db.bookmarkListDao()
+
+    @Provides
+    fun provideOnlineStationProviderSettingsDao(db: AppDatabase): OnlineStationProviderSettingsDao = db.onlineStationProviderSettingsDao()
 
     @Provides
     @Singleton
@@ -76,6 +111,18 @@ object AppModule {
     @Singleton
     fun provideAppStateRepository(dataStore: DataStore<Preferences>): AppStateRepository {
         return AppStateRepository(dataStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideStationRepository(
+        @ApplicationContext context: Context,
+        stationDao: StationDao,
+        bandDao: BandDao,
+        bookmarkListDao: BookmarkListDao,
+        onlineStationProviderSettingsDao: OnlineStationProviderSettingsDao
+    ): StationRepository {
+        return StationRepository(context, stationDao, bandDao, bookmarkListDao, onlineStationProviderSettingsDao)
     }
 
     @Provides

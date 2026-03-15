@@ -57,6 +57,34 @@ The Control Drawer is accessible on the side of the screen when the device is
 in landscape orientation. This setting lets you choose on which side the
 drawer should appear.
 
+## Low Performance Mode
+
+!!! warning "Enable only if necessary!"
+    This mode is intended for old and less powerful devices. Only enable it if
+    you have performance issues.
+
+This mode reduces the quality of the filters inside the demodulation path of
+the app. If your demodulated audio is stuttering or choppy, it might be because
+your Android device is not capable at running these filters at their intended
+quality. In this case, enable this setting and use the filter quality slider to
+reduce the filter quality until the audio is not choppy anymore. Note that with
+reduced filter quality you will hear more noise and more importantly: you will
+hear aliases (think of aliases as ghost signals: they are not visible in the
+FFT but you can hear them in the demodulation - they are only there because the
+filters are too weak).
+
+Currently, the only filter which is affected by this setting is the filter for
+the resampler. The resampler is used to downsample the signal from the sample
+rate of the SDR source (e.g. 2MHz for a RTL-SDR) to a lower sample rate for
+demodulation. If you enable [Show Debug Information](#show-debug-information)
+you can see the load of the resampler as percentage. If this load is greater or
+very close to 100%, your Android device is not able to run the filter at the
+necessary speed. The load on your phone increases if the input sample rate
+increases (e.g. with a HackRF you can go up to 20MHz) or if the number of
+filter taps increase. This setting reduces the filter taps to reduce the load.
+If possible you should rather reduce the input sample rate: This will give you
+better audio quality at the cost of seeing less bandwidth.
+
 ## Allow Out-of-Bound Frequency (RTL-SDR)
 
 The RTL-SDR devices have a tune frequency range which is determined by the

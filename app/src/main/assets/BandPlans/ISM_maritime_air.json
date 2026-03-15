@@ -1,0 +1,236 @@
+{
+  "metadata": {
+      "schemaVersion": 2,
+      "appName": "RF Analyzer",
+      "appVersion": "2.1.1"
+    },
+  "bookmarkLists": [
+    ],
+  "stations": [
+    ],
+  "bands": [
+    {
+      "id": 1,
+      "name": "Air Band (VHF)",
+      "bookmarkListId": 0,
+      "startFrequency": 118000000,
+      "endFrequency": 136975000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "Lower Airband",
+          "startFrequency": 118000000,
+          "endFrequency": 121500000,
+          "notes": "Tower, ground, approach, and area control communications"
+        },
+        {
+          "version": 1,
+          "name": "Emergency",
+          "startFrequency": 121500000,
+          "endFrequency": 121525000,
+          "notes": "International aeronautical emergency frequency (121.5 MHz)"
+        },
+        {
+          "version": 1,
+          "name": "Upper Airband",
+          "startFrequency": 121525000,
+          "endFrequency": 136975000,
+          "notes": "En-route, sector, and high-level ATC communications"
+        }
+      ],
+      "notes": "Civil aviation VHF air band per ICAO Annex 10. Frequencies spaced at 25 kHz historically; 8.33 kHz channel spacing now mandatory in most European controlled airspace. AM Modulation.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 2,
+      "name": "Marine VHF",
+      "bookmarkListId": 0,
+      "startFrequency": 156000000,
+      "endFrequency": 162025000,
+      "subBands": [
+        { "version": 1, "name": "0", "startFrequency": 156000000, "endFrequency": 156025000, "notes": null },
+        { "version": 1, "name": "60", "startFrequency": 156025000, "endFrequency": 156050000, "notes": null },
+        { "version": 1, "name": "1", "startFrequency": 156050000, "endFrequency": 156075000, "notes": null },
+        { "version": 1, "name": "61", "startFrequency": 156075000, "endFrequency": 156100000, "notes": null },
+        { "version": 1, "name": "2", "startFrequency": 156100000, "endFrequency": 156125000, "notes": null },
+        { "version": 1, "name": "62", "startFrequency": 156125000, "endFrequency": 156150000, "notes": null },
+        { "version": 1, "name": "3", "startFrequency": 156150000, "endFrequency": 156175000, "notes": null },
+        { "version": 1, "name": "63", "startFrequency": 156175000, "endFrequency": 156200000, "notes": null },
+        { "version": 1, "name": "4", "startFrequency": 156200000, "endFrequency": 156225000, "notes": null },
+        { "version": 1, "name": "64", "startFrequency": 156225000, "endFrequency": 156250000, "notes": null },
+        { "version": 1, "name": "5", "startFrequency": 156250000, "endFrequency": 156275000, "notes": null },
+        { "version": 1, "name": "65", "startFrequency": 156275000, "endFrequency": 156300000, "notes": null },
+        { "version": 1, "name": "6", "startFrequency": 156300000, "endFrequency": 156325000, "notes": "Intership safety" },
+        { "version": 1, "name": "66", "startFrequency": 156325000, "endFrequency": 156350000, "notes": null },
+        { "version": 1, "name": "7", "startFrequency": 156350000, "endFrequency": 156375000, "notes": null },
+        { "version": 1, "name": "67", "startFrequency": 156375000, "endFrequency": 156400000, "notes": "Bridge-to-bridge" },
+        { "version": 1, "name": "8", "startFrequency": 156400000, "endFrequency": 156425000, "notes": null },
+        { "version": 1, "name": "68", "startFrequency": 156425000, "endFrequency": 156450000, "notes": "Non-commercial" },
+        { "version": 1, "name": "9", "startFrequency": 156450000, "endFrequency": 156475000, "notes": "Alternate calling" },
+        { "version": 1, "name": "69", "startFrequency": 156475000, "endFrequency": 156500000, "notes": "Non-commercial" },
+        { "version": 1, "name": "10", "startFrequency": 156500000, "endFrequency": 156525000, "notes": null },
+        { "version": 1, "name": "70", "startFrequency": 156525000, "endFrequency": 156550000, "notes": "DSC only" },
+        { "version": 1, "name": "11", "startFrequency": 156550000, "endFrequency": 156575000, "notes": null },
+        { "version": 1, "name": "71", "startFrequency": 156575000, "endFrequency": 156600000, "notes": null },
+        { "version": 1, "name": "12", "startFrequency": 156600000, "endFrequency": 156625000, "notes": "Port operations" },
+        { "version": 1, "name": "13", "startFrequency": 156650000, "endFrequency": 156675000, "notes": "Bridge-to-bridge safety" },
+        { "version": 1, "name": "14", "startFrequency": 156700000, "endFrequency": 156725000, "notes": "Port operations" },
+        { "version": 1, "name": "15", "startFrequency": 156750000, "endFrequency": 156775000, "notes": "Low power" },
+        {
+          "version": 1,
+          "name": "Ch. 16",
+          "startFrequency": 156800000,
+          "endFrequency": 156825000,
+          "notes": "International calling and distress"
+        }
+      ],
+      "notes": "Marine VHF band using 25 kHz channel spacing. Channels 75 and 76 omitted as guard channels for Ch 16.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1901,
+      "name": "13.56 MHz ISM",
+      "bookmarkListId": 0,
+      "startFrequency": 13553000,
+      "endFrequency": 13567000,
+      "subBands": [],
+      "notes": "Worldwide ISM band. Used for NFC, RFID (HF), inductive coupling systems.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1902,
+      "name": "27 MHz ISM",
+      "bookmarkListId": 0,
+      "startFrequency": 26957000,
+      "endFrequency": 27283000,
+      "subBands": [],
+      "notes": "Worldwide ISM band. CB radio, toys, remote controls, low-power devices.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1903,
+      "name": "40.68 MHz ISM",
+      "bookmarkListId": 0,
+      "startFrequency": 40660000,
+      "endFrequency": 40700000,
+      "subBands": [],
+      "notes": "Worldwide ISM band. Telemetry, industrial control, remote control models.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1904,
+      "name": "169 MHz SRD (EU)",
+      "bookmarkListId": 0,
+      "startFrequency": 169400000,
+      "endFrequency": 169812500,
+      "subBands": [],
+      "notes": "Europe only. Smart metering (e.g. Wize), legacy ERMES paging. Subject to national regulation.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1905,
+      "name": "433 MHz ISM / SRD",
+      "bookmarkListId": 0,
+      "startFrequency": 433050000,
+      "endFrequency": 434790000,
+      "subBands": [],
+      "notes": "Region 1 ISM/SRD band. Sensors, remotes, low-power devices. Amateur service secondary (ITU footnote 5.280).",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1906,
+      "name": "868 MHz SRD (EU)",
+      "bookmarkListId": 0,
+      "startFrequency": 863000000,
+      "endFrequency": 870000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "Common LoRaWAN",
+          "startFrequency": 868000000,
+          "endFrequency": 868600000,
+          "notes": "LoRaWAN primary EU uplink band; 1% duty cycle typical"
+        },
+        {
+          "version": 1,
+          "name": "Mid Band",
+          "startFrequency": 868700000,
+          "endFrequency": 869200000,
+          "notes": "SRD mid-band; higher duty cycles allowed"
+        },
+        {
+          "version": 1,
+          "name": "High Power",
+          "startFrequency": 869400000,
+          "endFrequency": 869650000,
+          "notes": "High power SRD; alarms, paging, up to 500 mW ERP and 10% duty cycle"
+        }
+      ],
+      "notes": "Europe-only SRD (Short-Range-Devices) band. Widely used by LoRaWAN, Meshtastic, Sigfox, alarms and telemetry. Power and duty-cycle limits vary by sub-band.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1907,
+      "name": "915 MHz ISM",
+      "bookmarkListId": 0,
+      "startFrequency": 902000000,
+      "endFrequency": 928000000,
+      "subBands": [],
+      "notes": "Primarily Region 2 (Americas). ISM, RFID, LoRa, amateur secondary allocation. Not harmonized worldwide.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1908,
+      "name": "2.4 GHz ISM",
+      "bookmarkListId": 0,
+      "startFrequency": 2400000000,
+      "endFrequency": 2500000000,
+      "subBands": [],
+      "notes": "Worldwide ISM band. Wi-Fi, Bluetooth, Zigbee, proprietary RF, microwave ovens. Very congested.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 1909,
+      "name": "5.8 GHz ISM",
+      "bookmarkListId": 0,
+      "startFrequency": 5725000000,
+      "endFrequency": 5875000000,
+      "subBands": [],
+      "notes": "Worldwide ISM band. Wi-Fi, radar, fixed wireless, ISM devices. Amateur service secondary.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    }
+  ]
+}

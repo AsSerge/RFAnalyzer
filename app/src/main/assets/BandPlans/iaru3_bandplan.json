@@ -1,0 +1,622 @@
+{
+  "metadata": {
+      "schemaVersion": 2,
+      "appName": "RF Analyzer",
+      "appVersion": "2.1.1"
+    },
+  "bookmarkLists": [
+    ],
+  "stations": [
+    ],
+  "bands": [
+    {
+      "id": 1,
+      "name": "160 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 1800000,
+      "endFrequency": 2000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 1800000,
+          "endFrequency": 1830000,
+          "notes": "Primary CW and QRSS segment"
+        },
+        {
+          "version": 1,
+          "name": "CW/RTTY/data",
+          "startFrequency": 1830000,
+          "endFrequency": 1840000,
+          "notes": "CW and narrowband digital modes; QRP CoA 1836 kHz"
+        },
+        {
+          "version": 1,
+          "name": "All modes (SSB, CW, data)",
+          "startFrequency": 1840000,
+          "endFrequency": 2000000,
+          "notes": "General mixed-mode segment"
+        }
+      ],
+      "notes": "160 m band (1.8–2.0 MHz), primarily CW and low-frequency communication; primary amateur allocation.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 2,
+      "name": "80 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 3500000,
+      "endFrequency": 3900000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW/DX",
+          "startFrequency": 3500000,
+          "endFrequency": 3510000,
+          "notes": "CW DX segment"
+        },
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 3510000,
+          "endFrequency": 3535000,
+          "notes": "Primary CW activity"
+        },
+        {
+          "version": 1,
+          "name": "CW/SSB/data",
+          "startFrequency": 3535000,
+          "endFrequency": 3600000,
+          "notes": "Mixed CW, phone, and data modes; QRP CoA 3560 kHz"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 3600000,
+          "endFrequency": 3775000,
+          "notes": "CW, SSB, digital voice; emergency CoA 3600 kHz"
+        },
+        {
+          "version": 1,
+          "name": "SSB/DX",
+          "startFrequency": 3775000,
+          "endFrequency": 3800000,
+          "notes": "CW, SSB, DX operation"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 3800000,
+          "endFrequency": 3900000,
+          "notes": "Mixed use; DX Phone CoA 3795 kHz"
+        }
+      ],
+      "notes": "80 m band (3.5–3.9 MHz), supports CW, phone, and data. Primary HF contest and regional communication band.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 3,
+      "name": "40 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 7000000,
+      "endFrequency": 7200000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 7000000,
+          "endFrequency": 7030000,
+          "notes": "Primary CW and amateur satellite allocation"
+        },
+        {
+          "version": 1,
+          "name": "CW/SSB/data",
+          "startFrequency": 7030000,
+          "endFrequency": 7040000,
+          "notes": "Mixed narrowband modes; QRP CoA 7030 kHz"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 7040000,
+          "endFrequency": 7100000,
+          "notes": "SSB, CW, and digital modes; SSB QRP 7090 kHz"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 7100000,
+          "endFrequency": 7200000,
+          "notes": "General mixed-mode operation; emergency CoA 7110 kHz"
+        }
+      ],
+      "notes": "40 m band (7.0–7.2 MHz), heavily used for DX, SSB, CW, and digital; primary amateur allocation.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 4,
+      "name": "30 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 10100000,
+      "endFrequency": 10150000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 10110000,
+          "endFrequency": 10130000,
+          "notes": "Primary CW segment; QRP CoA 10116 kHz"
+        },
+        {
+          "version": 1,
+          "name": "CW/RTTY/data",
+          "startFrequency": 10130000,
+          "endFrequency": 10150000,
+          "notes": "Narrowband digital and CW; data activity around 10136–10138 kHz"
+        }
+      ],
+      "notes": "30 m band (10.1–10.15 MHz); narrowband CW and digimodes only, no phone allowed in most regions.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 5,
+      "name": "20 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 14000000,
+      "endFrequency": 14350000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 14000000,
+          "endFrequency": 14070000,
+          "notes": "CW activity; QRS CoA 14055 kHz, QRP CoA 14060 kHz"
+        },
+        {
+          "version": 1,
+          "name": "CW/RTTY/data",
+          "startFrequency": 14070000,
+          "endFrequency": 14110000,
+          "notes": "Narrowband data; beacon at 14100 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Mixed modes",
+          "startFrequency": 14110000,
+          "endFrequency": 14250000,
+          "notes": "CW, data, and SSB; digital voice and image CoAs around 14130–14230 kHz"
+        },
+        {
+          "version": 1,
+          "name": "SSB/All modes",
+          "startFrequency": 14250000,
+          "endFrequency": 14350000,
+          "notes": "General phone and all modes; emergency CoA 14300 kHz"
+        }
+      ],
+      "notes": "20 m band (14.0–14.35 MHz); classic DX band for worldwide communications, all major modes used.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 6,
+      "name": "17 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 18068000,
+      "endFrequency": 18168000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 18068000,
+          "endFrequency": 18095000,
+          "notes": "CW activity; QRP CoA 18086 kHz"
+        },
+        {
+          "version": 1,
+          "name": "CW/RTTY/data",
+          "startFrequency": 18095000,
+          "endFrequency": 18110000,
+          "notes": "Narrowband digital and CW activity"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 18110000,
+          "endFrequency": 18120000,
+          "notes": "Beacons and mixed narrowband/phone"
+        },
+        {
+          "version": 1,
+          "name": "SSB/All modes",
+          "startFrequency": 18120000,
+          "endFrequency": 18168000,
+          "notes": "Phone, digital voice, and emergency use; CoAs 18130–18160 kHz"
+        }
+      ],
+      "notes": "17 m band (18.068–18.168 MHz); primarily CW and SSB with some data; popular for daytime DX.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 7,
+      "name": "15 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 21000000,
+      "endFrequency": 21450000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 21000000,
+          "endFrequency": 21070000,
+          "notes": "CW activity; QRS CoA 21055 kHz, QRP CoA 21060 kHz"
+        },
+        {
+          "version": 1,
+          "name": "CW/RTTY/data",
+          "startFrequency": 21070000,
+          "endFrequency": 21110000,
+          "notes": "Narrowband digital and CW modes"
+        },
+        {
+          "version": 1,
+          "name": "Data/All modes",
+          "startFrequency": 21110000,
+          "endFrequency": 21150000,
+          "notes": "Mixed CW/digital; beacon near 21150 kHz"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 21150000,
+          "endFrequency": 21450000,
+          "notes": "SSB, CW, image, digital voice; DX CoA 21295 kHz, emergency 21360 kHz"
+        }
+      ],
+      "notes": "15 m band (21.0–21.45 MHz); major daytime DX band supporting all modes.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 8,
+      "name": "12 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 24890000,
+      "endFrequency": 24990000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 24890000,
+          "endFrequency": 24915000,
+          "notes": "CW activity; QRP CoA 24906 kHz"
+        },
+        {
+          "version": 1,
+          "name": "CW/RTTY/data",
+          "startFrequency": 24915000,
+          "endFrequency": 24930000,
+          "notes": "Narrowband data modes"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 24930000,
+          "endFrequency": 24990000,
+          "notes": "Mixed CW, SSB, and data; beacon at 24930 kHz, QRP CoA 24950 kHz"
+        }
+      ],
+      "notes": "12 m band (24.89–24.99 MHz); supports CW, SSB, and digital; good for propagation between 10 m and 15 m.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 9,
+      "name": "10 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 28000000,
+      "endFrequency": 29700000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 28000000,
+          "endFrequency": 28070000,
+          "notes": "CW activity; QRS CoA 28055 kHz"
+        },
+        {
+          "version": 1,
+          "name": "CW/RTTY/data",
+          "startFrequency": 28070000,
+          "endFrequency": 28150000,
+          "notes": "Narrowband digital and CW modes"
+        },
+        {
+          "version": 1,
+          "name": "Beacons",
+          "startFrequency": 28190000,
+          "endFrequency": 28225000,
+          "notes": "International beacons; 28200 kHz beacon frequency"
+        },
+        {
+          "version": 1,
+          "name": "All modes (SSB/data)",
+          "startFrequency": 28225000,
+          "endFrequency": 29100000,
+          "notes": "CW, SSB, data; digital voice CoA 28330 kHz, DX CoA 28495 kHz"
+        },
+        {
+          "version": 1,
+          "name": "FM/All modes",
+          "startFrequency": 29100000,
+          "endFrequency": 29700000,
+          "notes": "FM simplex and repeater operations; FM calling 29600 kHz"
+        }
+      ],
+      "notes": "10 m band (28.0–29.7 MHz); wideband HF band for CW, SSB, data, and FM repeater activity. Excellent during solar maximum.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 10,
+      "name": "6 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 50000000,
+      "endFrequency": 54000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 50000000,
+          "endFrequency": 50100000,
+          "notes": "CW and beacon activity 50.020–50.080 MHz"
+        },
+        {
+          "version": 1,
+          "name": "CW/SSB/data",
+          "startFrequency": 50100000,
+          "endFrequency": 50500000,
+          "notes": "Mixed narrowband and SSB; DX CoA 50.110 MHz"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 50500000,
+          "endFrequency": 54000000,
+          "notes": "Wideband SSB, FM, and data; regionally diverse use"
+        }
+      ],
+      "notes": "6 m band (50–54 MHz); 'Magic Band' for sporadic E propagation and local VHF operation.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 11,
+      "name": "2 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 144000000,
+      "endFrequency": 148000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "Narrowband/data",
+          "startFrequency": 144000000,
+          "endFrequency": 144025000,
+          "notes": "Narrowband digimodes and CW; avoid transmitting below 144.0025 MHz"
+        },
+        {
+          "version": 1,
+          "name": "EME/Weak signal",
+          "startFrequency": 144025000,
+          "endFrequency": 144035000,
+          "notes": "Earth–Moon–Earth and weak-signal activity"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 144035000,
+          "endFrequency": 145800000,
+          "notes": "General CW, SSB, FM, and data; DX CoA 144.100 MHz"
+        },
+        {
+          "version": 1,
+          "name": "Satellite",
+          "startFrequency": 145800000,
+          "endFrequency": 146000000,
+          "notes": "Satellite downlinks and digital modes"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 146000000,
+          "endFrequency": 148000000,
+          "notes": "General use, repeaters, FM simplex"
+        }
+      ],
+      "notes": "2 m band (144–148 MHz); widely used for FM, repeaters, CW/SSB, and satellite operation.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 12,
+      "name": "70 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 430000000,
+      "endFrequency": 440000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 430000000,
+          "endFrequency": 431900000,
+          "notes": "General FM, SSB, and data operation; secondary amateur allocation"
+        },
+        {
+          "version": 1,
+          "name": "EME/Weak signal",
+          "startFrequency": 431900000,
+          "endFrequency": 432240000,
+          "notes": "EME and weak-signal CW/SSB"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 432240000,
+          "endFrequency": 435000000,
+          "notes": "General narrowband and voice operation"
+        },
+        {
+          "version": 1,
+          "name": "Satellite",
+          "startFrequency": 435000000,
+          "endFrequency": 438000000,
+          "notes": "Satellite uplinks/downlinks; secondary amateur-satellite allocation"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 438000000,
+          "endFrequency": 440000000,
+          "notes": "General use; heavy ISM and shared services"
+        }
+      ],
+      "notes": "70 cm band (430–440 MHz); supports FM repeaters, EME, satellites, and weak-signal work; shared secondary use in most regions.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 13,
+      "name": "23 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 1240000000,
+      "endFrequency": 1300000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 1240000000,
+          "endFrequency": 1260000000,
+          "notes": "General operation; secondary amateur allocation"
+        },
+        {
+          "version": 1,
+          "name": "Satellite uplink",
+          "startFrequency": 1260000000,
+          "endFrequency": 1270000000,
+          "notes": "Satellite Earth-to-space transmissions; secondary amateur-satellite use"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 1270000000,
+          "endFrequency": 1296000000,
+          "notes": "General mixed operation"
+        },
+        {
+          "version": 1,
+          "name": "EME/Weak signal",
+          "startFrequency": 1296000000,
+          "endFrequency": 1297000000,
+          "notes": "CW, SSB, and digimodes for EME and weak-signal work"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 1297000000,
+          "endFrequency": 1300000000,
+          "notes": "General all-mode use"
+        }
+      ],
+      "notes": "23 cm band (1.24–1.30 GHz); supports all modes including EME and amateur satellites. Secondary allocation with some sharing constraints.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 14,
+      "name": "13 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 2300000000,
+      "endFrequency": 2450000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 2300000000,
+          "endFrequency": 2303750000,
+          "notes": "General all-mode use; secondary amateur allocation"
+        },
+        {
+          "version": 1,
+          "name": "Weak signal",
+          "startFrequency": 2303750000,
+          "endFrequency": 2304000000,
+          "notes": "CW, SSB, and digimodes"
+        },
+        {
+          "version": 1,
+          "name": "Weak signal/EME",
+          "startFrequency": 2304000000,
+          "endFrequency": 2304100000,
+          "notes": "EME and weak-signal operation; calling 2304.10 MHz"
+        },
+        {
+          "version": 1,
+          "name": "Beacons",
+          "startFrequency": 2304300000,
+          "endFrequency": 2304400000,
+          "notes": "Beacon operations for propagation monitoring"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 2304400000,
+          "endFrequency": 2400000000,
+          "notes": "General all-mode use"
+        },
+        {
+          "version": 1,
+          "name": "Satellite",
+          "startFrequency": 2400000000,
+          "endFrequency": 2450000000,
+          "notes": "Satellite uplinks/downlinks; secondary amateur-satellite allocation"
+        }
+      ],
+      "notes": "13 cm band (2.30–2.45 GHz); used for weak-signal, beacons, EME, and satellite operations. Secondary allocation with shared ISM usage.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    }
+  ]
+}

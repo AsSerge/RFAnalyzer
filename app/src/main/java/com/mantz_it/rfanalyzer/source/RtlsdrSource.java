@@ -55,8 +55,9 @@ public class RtlsdrSource implements IQSourceInterface {
 	public static final int RTL_TCP_COMMAND_SET_FREQ_CORR 	= 0x05;
 	public static final int RTL_TCP_COMMAND_SET_IFGAIN 		= 0x06;
 	public static final int RTL_TCP_COMMAND_SET_AGC_MODE 	= 0x08;
+    public static final int RTL_TCP_COMMAND_SET_DIRECT_SAMPLING_MODE = 0x09;
 	public final String[] COMMAND_NAME = {"invalid", "SET_FREQUENY", "SET_SAMPLERATE", "SET_GAIN_MODE",
-			"SET_GAIN", "SET_FREQ_CORR", "SET_IFGAIN", "SET_TEST_MODE", "SET_ADC_MODE"};
+			"SET_GAIN", "SET_FREQ_CORR", "SET_IFGAIN", "SET_TEST_MODE", "SET_ADC_MODE", "SET_DIRECT_SAMPLING_MODE"};
 
 	private ReceiverThread receiverThread = null;
 	private CommandThread commandThread = null;
@@ -79,6 +80,7 @@ public class RtlsdrSource implements IQSourceInterface {
 	private int frequencyCorrection = 0;
 	private boolean automaticGainControl = false;
 	private int frequencyOffset = 0;	// virtually offset the frequency according to an external up/down-converter
+    private int directSamplingMode = 0; // 0 = off;  1 = I;  2 = Q;
 	private IQConverter iqConverter;
 	private static final String LOGTAG = "RtlsdrSource";
 	private static final int QUEUE_SIZE = 20;
@@ -266,7 +268,10 @@ public class RtlsdrSource implements IQSourceInterface {
 
 	@Override
 	public long getMaxFrequency() {
-		return MAX_FREQUENCY[tuner] + frequencyOffset;
+        if(allowOutOfBoundFrequency)
+            return 3000000000L + frequencyOffset;
+        else
+            return MAX_FREQUENCY[tuner] + frequencyOffset;
 	}
 
 	@Override
@@ -396,6 +401,17 @@ public class RtlsdrSource implements IQSourceInterface {
 		this.frequencyOffset = frequencyShift;
 		this.iqConverter.setFrequency(frequency + frequencyShift);
 	}
+
+    public void setDirectSamplingMode(int value) {
+        Log.e(LOGTAG,"setDirectSamplingMode value = " + value);
+        if(value < 0 || value > 2) return;
+        if(isOpen()) {
+            if(!commandThread.executeCommand(commandToByteArray(RTL_TCP_COMMAND_SET_DIRECT_SAMPLING_MODE,value))) {
+                Log.e(LOGTAG, "setDirectSamplingMode: failed.");
+            }
+        }
+        this.directSamplingMode = value;
+    }
 
 	@Override
 	public int getPacketSize() {
@@ -775,6 +791,9 @@ public class RtlsdrSource implements IQSourceInterface {
 
 				// AGC mode:
 				executeCommand(commandToByteArray(RTL_TCP_COMMAND_SET_AGC_MODE, (int)(automaticGainControl ? 0x01 : 0x00)));
+
+                // Direct Sampling:
+                executeCommand(commandToByteArray(RTL_TCP_COMMAND_SET_DIRECT_SAMPLING_MODE, directSamplingMode));
 
 				return true;
 

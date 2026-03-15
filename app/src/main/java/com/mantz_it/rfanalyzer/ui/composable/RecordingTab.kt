@@ -2,6 +2,7 @@ package com.mantz_it.rfanalyzer.ui.composable
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -132,11 +133,9 @@ fun RecordingTabComposable(
                 .padding(vertical = 3.dp)
         ) {
             Row {
-                Text("View Recordings", modifier = Modifier.padding(horizontal = 16.dp))
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "View Recordings"
-                )
+                Icon(imageVector = Icons.Default.Menu, contentDescription = "View Recordings")
+                Spacer(Modifier.width(8.dp))
+                Text("View Recordings")
             }
         }
         Text("Frequency: ${frequency.asStringWithUnit("Hz")}     Bandwidth: ${sampleRate.asStringWithUnit("Sps")}",

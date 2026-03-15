@@ -18,6 +18,8 @@ phone both practical and fun.
 - Real-time **FFT and waterfall display** with scroll and pinch-to-zoom
 - Audio demodulation: **CW**, **AM**, **nFM**, **wFM**, **LSB**, **USB**
 - Record raw IQ data
+- Comprehensive Bookmark Manager for Stations (Frequencies) and Bands
+- Download and Synchronize EiBi Shortwave Radio Database, POTA & SOTA Spots
 - Modern and dynamic UI with a bottom (or side) drawer for full control
 - Adjustable Settings such as averaging, peak hold, FFT size, color maps, color
   theme, screen orientation and more
@@ -27,9 +29,10 @@ phone both practical and fun.
 
 ## Supported Devices
 
-- HackRF (via [hackrf_android](https://github.com/demantz/hackrf_android))
+- HackRF (via [libhackrf](https://github.com/greatscottgadgets/hackrf/tree/master/host/libhackrf))
 - RTL-SDR dongles (via [rtl-sdr driver](http://sdr.osmocom.org/trac/wiki/rtl-sdr))
 - Airspy (via [libairspy](https://github.com/airspy/airspyone_host/tree/master/libairspy))
+- Airspy HF+ (via [libairspyhf](https://github.com/airspy/airspyhf/tree/master/libairspyhf))
 - HydraSDR (via [libhydrasdr](https://github.com/hydrasdr/rfone_host/tree/main/libhydrasdr))
 - File input (from previously recorded IQ files or external sources)
 
@@ -57,6 +60,7 @@ Topics include:
 - User Interface & Controls
 - SDR & FFT Configuration
 - Demodulation Modes
+- Bookmark Manager
 - Signal Identification Tips
 - Recording & Playback
 - Advanced SDR Topics (dB, FFT theory, ham radio...)

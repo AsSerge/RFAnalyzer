@@ -1,5 +1,21 @@
 CHANGELOG - RF Analyzer
 
+version 2.2
+- Bookmarks:
+  - Bookmarks for Stations and Bands
+  - Bookmarks show as labels in FFT plot
+  - Import from SDR#, SDR++ and legacy RF Analyzer 1.13 lists
+  - Import (and auto-update) online station lists:
+    - EiBi, POTA & SOTA Spots
+  - Included Band Plans: Amateur Radio, ISM, Maritime and Air Bands
+- Support for Airspy HF+ SDR
+- RTL-SDR Direct Sampling Support (Experimental)
+- Switched from hackrf_android to libhackrf v0.10.0
+- Upgraded to libhydrasdr 1.1.1
+- Low Performance Mode Switch: Reduce Filter Quality to run smoother on older devices
+- Bug Fixes:
+  - Export Recordings in Background Task to prevent Freeze (large recordings)
+
 version 2.1
 - Support for Airspy SDR
 - Support for HydraSDR RFOne SDR

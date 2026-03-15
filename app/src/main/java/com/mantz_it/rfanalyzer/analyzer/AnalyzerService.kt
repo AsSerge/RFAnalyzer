@@ -34,6 +34,7 @@ import androidx.core.net.toUri
 import com.mantz_it.rfanalyzer.database.AppStateRepository
 import com.mantz_it.rfanalyzer.database.GlobalPerformanceData
 import com.mantz_it.rfanalyzer.database.collectAppState
+import com.mantz_it.rfanalyzer.source.AirspyHfSource
 import com.mantz_it.rfanalyzer.source.AirspySource
 import com.mantz_it.rfanalyzer.source.HydraSdrSource
 import com.mantz_it.rfanalyzer.ui.MainActivity
@@ -319,9 +320,12 @@ class AnalyzerService : Service() {
         demodulator = Demodulator(
             scheduler!!.demodOutputQueue,
             scheduler!!.demodInputQueue,
-            source!!.packetSize / source!!.bytesPerSample
+            source!!.packetSize / source!!.bytesPerSample,
+            appStateRepository.enableLowPerformanceMode.value,
         )
         demodulator!!.audioVolumeLevel = appStateRepository.effectiveAudioVolumeLevel.value
+        if(appStateRepository.enableLowPerformanceMode.value)
+            demodulator!!.filterQuality = appStateRepository.lowPerformanceModeFilterQuality.value
         demodulator!!.start()
 
         applyNewDemodulationMode(appStateRepository.demodulationMode.value)
@@ -425,10 +429,10 @@ class AnalyzerService : Service() {
                 val hackrfSource = HackrfSource()
                 hackrfSource.setFrequency(appStateRepository.sourceFrequency.value)
                 hackrfSource.setSampleRate(appStateRepository.sourceSampleRate.value.toInt())
-                hackrfSource.vgaRxGain = appStateRepository.hackrfVgaGainSteps[appStateRepository.hackrfVgaGainIndex.value]
+                hackrfSource.vgaGain = appStateRepository.hackrfVgaGainSteps[appStateRepository.hackrfVgaGainIndex.value]
                 hackrfSource.lnaGain = appStateRepository.hackrfVgaGainSteps[appStateRepository.hackrfVgaGainIndex.value]
-                hackrfSource.setAmplifier(appStateRepository.hackrfAmplifierEnabled.value)
-                hackrfSource.setAntennaPower(appStateRepository.hackrfAntennaPowerEnabled.value)
+                hackrfSource.ampEnabled = appStateRepository.hackrfAmplifierEnabled.value
+                hackrfSource.antennaPowerEnabled = appStateRepository.hackrfAntennaPowerEnabled.value
                 hackrfSource.frequencyOffset = appStateRepository.hackrfConverterOffset.value.toInt()
                 source = hackrfSource
             }
@@ -444,13 +448,14 @@ class AnalyzerService : Service() {
                         "127.0.0.1",
                         1234
                     )
-                rtlsdrSource.setAllowOutOfBoundFrequency(appStateRepository.rtlsdrAllowOutOfBoundFrequency.value || appStateRepository.rtlsdrBlogV4connected.value)
+                rtlsdrSource.isAllowOutOfBoundFrequency = appStateRepository.rtlsdrFrequencyRestrictionsDisabled.value
                 rtlsdrSource.setFrequency(appStateRepository.sourceFrequency.value)
                 rtlsdrSource.setSampleRate(appStateRepository.sourceSampleRate.value.toInt())
 
                 rtlsdrSource.frequencyCorrection = appStateRepository.rtlsdrFrequencyCorrection.value
                 rtlsdrSource.frequencyOffset = appStateRepository.rtlsdrConverterOffset.value.toInt()
                 rtlsdrSource.isAutomaticGainControl = appStateRepository.rtlsdrAgcEnabled.value
+                rtlsdrSource.setDirectSamplingMode(appStateRepository.rtlsdrDirectSamplingMode.value.intValue)
 
                 if (appStateRepository.rtlsdrManualGainEnabled.value) {
                     rtlsdrSource.isManualGain = true
@@ -476,6 +481,17 @@ class AnalyzerService : Service() {
                 airspySource.rfBias = appStateRepository.airspyRfBiasEnabled.value
                 airspySource.frequencyOffset = appStateRepository.airspyConverterOffset.value.toInt()
                 source = airspySource
+            }
+            SourceType.AIRSPYHF -> {
+                val airspyHfSource = AirspyHfSource()
+                airspyHfSource.frequency = appStateRepository.sourceFrequency.value
+                airspyHfSource.sampleRate = appStateRepository.sourceSampleRate.value.toInt()
+                airspyHfSource.agcEnabled = appStateRepository.airspyHfAgcEnabled.value
+                airspyHfSource.agcThreshold = appStateRepository.airspyHfAgcThreshold.value
+                airspyHfSource.attenuation = appStateRepository.airspyHfAttenuation.value
+                airspyHfSource.lnaEnabled = appStateRepository.airspyHfLnaEnabled.value
+                airspyHfSource.frequencyOffset = appStateRepository.airspyHfConverterOffset.value.toInt()
+                source = airspyHfSource
             }
             SourceType.HYDRASDR -> {
                 val hydraSdrSource = HydraSdrSource()
@@ -516,6 +532,7 @@ class AnalyzerService : Service() {
                         FilesourceFileFormat.HACKRF -> FileIQSource.FILE_FORMAT_8BIT_SIGNED
                         FilesourceFileFormat.RTLSDR -> FileIQSource.FILE_FORMAT_8BIT_UNSIGNED
                         FilesourceFileFormat.AIRSPY -> FileIQSource.FILE_FORMAT_16BIT_SIGNED
+                        FilesourceFileFormat.AIRSPYHF -> FileIQSource.FILE_FORMAT_32BIT_FLOAT
                         FilesourceFileFormat.HYDRASDR -> FileIQSource.FILE_FORMAT_16BIT_SIGNED
                     }
                 )
@@ -543,6 +560,13 @@ class AnalyzerService : Service() {
                 return source?.open(this, iqSourceActions) == true
             else {
                 Log.e(TAG, "openSource: sourceType is AIRSPY, but source is null or of other type.")
+                return false
+            }
+
+            SourceType.AIRSPYHF -> if (source != null && source is AirspyHfSource)
+                return source?.open(this, iqSourceActions) == true
+            else {
+                Log.e(TAG, "openSource: sourceType is AIRSPYHF, but source is null or of other type.")
                 return false
             }
 
@@ -599,10 +623,10 @@ class AnalyzerService : Service() {
         // source tab
         s.collectAppState(asr.sourceFrequency) { source?.frequency = it }
         s.collectAppState(asr.sourceSampleRate) { source?.sampleRate = it.toInt() }
-        s.collectAppState(asr.hackrfVgaGainIndex) { (source as? HackrfSource)?.vgaRxGain = asr.hackrfVgaGainSteps[it] }
+        s.collectAppState(asr.hackrfVgaGainIndex) { (source as? HackrfSource)?.vgaGain = asr.hackrfVgaGainSteps[it] }
         s.collectAppState(asr.hackrfLnaGainIndex) { (source as? HackrfSource)?.lnaGain = asr.hackrfLnaGainSteps[it] }
-        s.collectAppState(asr.hackrfAmplifierEnabled) { (source as? HackrfSource)?.setAmplifier(it) }
-        s.collectAppState(asr.hackrfAntennaPowerEnabled) { (source as? HackrfSource)?.setAntennaPower(it) }
+        s.collectAppState(asr.hackrfAmplifierEnabled) { (source as? HackrfSource)?.ampEnabled = it }
+        s.collectAppState(asr.hackrfAntennaPowerEnabled) { (source as? HackrfSource)?.antennaPowerEnabled = it }
         s.collectAppState(asr.hackrfConverterOffset) { (source as? HackrfSource)?.frequencyOffset = it.toInt() }
         s.collectAppState(asr.rtlsdrGainIndex) { (source as? RtlsdrSource)?.gain = asr.rtlsdrGainSteps.value[it] }
         s.collectAppState(asr.rtlsdrIFGainIndex) { (source as? RtlsdrSource)?.ifGain = asr.rtlsdrIFGainSteps.value[it] }
@@ -618,6 +642,7 @@ class AnalyzerService : Service() {
         }
         s.collectAppState(asr.rtlsdrConverterOffset) { (source as? RtlsdrSource)?.frequencyOffset = it.toInt() }
         s.collectAppState(asr.rtlsdrFrequencyCorrection) { (source as? RtlsdrSource)?.frequencyCorrection = it }
+        s.collectAppState(asr.rtlsdrDirectSamplingMode) { (source as? RtlsdrSource)?.setDirectSamplingMode(it.intValue) }
         s.collectAppState(asr.airspyAdvancedGainEnabled) { (source as? AirspySource)?.advancedGainEnabled = it }
         s.collectAppState(asr.airspyVgaGain) { (source as? AirspySource)?.vgaGain = it }
         s.collectAppState(asr.airspyLnaGain) { (source as? AirspySource)?.lnaGain = it }
@@ -626,6 +651,11 @@ class AnalyzerService : Service() {
         s.collectAppState(asr.airspySensitivityGain) { (source as? AirspySource)?.sensitivityGain = it }
         s.collectAppState(asr.airspyRfBiasEnabled) { (source as? AirspySource)?.rfBias = it }
         s.collectAppState(asr.airspyConverterOffset) { (source as? AirspySource)?.frequencyOffset = it.toInt() }
+        s.collectAppState(asr.airspyHfAgcEnabled) { (source as? AirspyHfSource)?.agcEnabled = it }
+        s.collectAppState(asr.airspyHfAgcThreshold) { (source as? AirspyHfSource)?.agcThreshold = it }
+        s.collectAppState(asr.airspyHfAttenuation) { (source as? AirspyHfSource)?.attenuation = it }
+        s.collectAppState(asr.airspyHfLnaEnabled) { (source as? AirspyHfSource)?.lnaEnabled = it }
+        s.collectAppState(asr.airspyHfConverterOffset) { (source as? AirspyHfSource)?.frequencyOffset = it.toInt() }
         s.collectAppState(asr.hydraSdrAdvancedGainEnabled) { (source as? HydraSdrSource)?.advancedGainEnabled = it }
         s.collectAppState(asr.hydraSdrVgaGain) { (source as? HydraSdrSource)?.vgaGain = it }
         s.collectAppState(asr.hydraSdrLnaGain) { (source as? HydraSdrSource)?.lnaGain = it }
@@ -635,7 +665,15 @@ class AnalyzerService : Service() {
         s.collectAppState(asr.hydraSdrRfBiasEnabled) { (source as? HydraSdrSource)?.rfBias = it }
         s.collectAppState(asr.hydraSdrRfPort) { (source as? HydraSdrSource)?.rfPort = it }
         s.collectAppState(asr.hydraSdrConverterOffset) { (source as? HydraSdrSource)?.frequencyOffset = it.toInt() }
-        s.collectAppState(asr.filesourceFileFormat) { (source as? FileIQSource)?.fileFormat = it.ordinal }
+        s.collectAppState(asr.filesourceFileFormat) {
+            (source as? FileIQSource)?.fileFormat = when(it) {
+                FilesourceFileFormat.HACKRF -> FileIQSource.FILE_FORMAT_8BIT_SIGNED
+                FilesourceFileFormat.RTLSDR -> FileIQSource.FILE_FORMAT_8BIT_UNSIGNED
+                FilesourceFileFormat.AIRSPY -> FileIQSource.FILE_FORMAT_16BIT_SIGNED
+                FilesourceFileFormat.AIRSPYHF -> FileIQSource.FILE_FORMAT_32BIT_FLOAT
+                FilesourceFileFormat.HYDRASDR -> FileIQSource.FILE_FORMAT_16BIT_SIGNED
+            }
+        }
         s.collectAppState(asr.filesourceRepeatEnabled) { (source as? FileIQSource)?.isRepeat = it }
 
         // view tab
@@ -657,13 +695,20 @@ class AnalyzerService : Service() {
             else if (LogcatLogger.isLogging)
                 LogcatLogger.stopLogging()
         }
-        s.collectAppState(asr.rtlsdrAllowOutOfBoundFrequency) {
-            (source as? RtlsdrSource)?.isAllowOutOfBoundFrequency = it || appStateRepository.rtlsdrBlogV4connected.value
-            appStateRepository.sourceMinimumFrequency.set(source?.minFrequency ?: 0)
-            appStateRepository.sourceMaximumFrequency.set(source?.maxFrequency ?: 0)
+        s.collectAppState(asr.enableLowPerformanceMode) {
+            if (it)
+                demodulator?.filterQuality = appStateRepository.lowPerformanceModeFilterQuality.value
+            else
+                demodulator?.filterQuality = 1f
         }
-        s.collectAppState(asr.rtlsdrBlogV4connected) {
-            (source as? RtlsdrSource)?.isAllowOutOfBoundFrequency = it || appStateRepository.rtlsdrAllowOutOfBoundFrequency.value
+        s.collectAppState(asr.lowPerformanceModeFilterQuality) {
+            if (appStateRepository.enableLowPerformanceMode.value)
+                demodulator?.filterQuality = appStateRepository.lowPerformanceModeFilterQuality.value
+        }
+
+        // collect the derived state of rtlsdrAllowOutOfBoundFrequencies, v4 connected and direct sampling enabled:
+        s.collectAppState(asr.rtlsdrFrequencyRestrictionsDisabled) {
+            (source as? RtlsdrSource)?.isAllowOutOfBoundFrequency = it
             appStateRepository.sourceMinimumFrequency.set(source?.minFrequency ?: 0)
             appStateRepository.sourceMaximumFrequency.set(source?.maxFrequency ?: 0)
         }

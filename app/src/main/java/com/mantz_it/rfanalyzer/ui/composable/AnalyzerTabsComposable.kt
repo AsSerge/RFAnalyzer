@@ -16,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mantz_it.rfanalyzer.database.AppStateRepository
-import com.mantz_it.rfanalyzer.database.BillingRepositoryInterface
 import com.mantz_it.rfanalyzer.ui.MainViewModel
 
 /**
@@ -60,7 +59,6 @@ enum class AnalyzerTabs(val displayName: String) {
 fun AnalyzerTabsComposable(
     mainViewModel: MainViewModel,
     appStateRepository: AppStateRepository,
-    billingRepository: BillingRepositoryInterface,
     sourceTabActions: SourceTabActions,
     displayTabActions: DisplayTabActions,
     demodulationTabActions: DemodulationTabActions,
@@ -97,6 +95,8 @@ fun AnalyzerTabsComposable(
     val rtlsdrExternalServerPort by appStateRepository.rtlsdrExternalServerPort.stateFlow.collectAsState()
     val rtlsdrFrequencyCorrection by appStateRepository.rtlsdrFrequencyCorrection.stateFlow.collectAsState()
     val rtlsdrAllowOutOfBoundFrequency by appStateRepository.rtlsdrAllowOutOfBoundFrequency.stateFlow.collectAsState()
+    val rtlsdrFrequencyRestrictionsDisabled by appStateRepository.rtlsdrFrequencyRestrictionsDisabled.stateFlow.collectAsState()
+    val rtlsdrDirectSamplingMode by appStateRepository.rtlsdrDirectSamplingMode.stateFlow.collectAsState()
     val rtlsdrEnableBiasT by appStateRepository.rtlsdrEnableBiasT.stateFlow.collectAsState()
     val airspyAdvancedGainEnabled by appStateRepository.airspyAdvancedGainEnabled.stateFlow.collectAsState()
     val airspyVgaGain by appStateRepository.airspyVgaGain.stateFlow.collectAsState()
@@ -106,6 +106,11 @@ fun AnalyzerTabsComposable(
     val airspySensitivityGain by appStateRepository.airspySensitivityGain.stateFlow.collectAsState()
     val airspyRfBiasEnabled by appStateRepository.airspyRfBiasEnabled.stateFlow.collectAsState()
     val airspyConverterOffset by appStateRepository.airspyConverterOffset.stateFlow.collectAsState()
+    val airspyHfAgcEnabled by appStateRepository.airspyHfAgcEnabled.stateFlow.collectAsState()
+    val airspyHfAgcThreshold by appStateRepository.airspyHfAgcThreshold.stateFlow.collectAsState()
+    val airspyHfAttenuation by appStateRepository.airspyHfAttenuation.stateFlow.collectAsState()
+    val airspyHfLnaEnabled by appStateRepository.airspyHfLnaEnabled.stateFlow.collectAsState()
+    val airspyHfConverterOffset by appStateRepository.airspyHfConverterOffset.stateFlow.collectAsState()
     val hydraSdrAdvancedGainEnabled by appStateRepository.hydraSdrAdvancedGainEnabled.stateFlow.collectAsState()
     val hydraSdrVgaGain by appStateRepository.hydraSdrVgaGain.stateFlow.collectAsState()
     val hydraSdrLnaGain by appStateRepository.hydraSdrLnaGain.stateFlow.collectAsState()
@@ -136,6 +141,8 @@ fun AnalyzerTabsComposable(
     val audioVolumeLevel by appStateRepository.effectiveAudioVolumeLevel.stateFlow.collectAsState()
     val audioMuted by appStateRepository.audioMuted.stateFlow.collectAsState()
     val keepChannelCentered by appStateRepository.keepChannelCentered.stateFlow.collectAsState()
+    val stationFavorites by mainViewModel.stationFavorites.collectAsState()
+    val bandFavorites by mainViewModel.bandFavorites.collectAsState()
     val recordingRunning by appStateRepository.recordingRunning.stateFlow.collectAsState()
     val recordingName by appStateRepository.recordingName.stateFlow.collectAsState()
     val recordOnlyWhenSquelchIsSatisfied by appStateRepository.recordOnlyWhenSquelchIsSatisfied.stateFlow.collectAsState()
@@ -149,6 +156,8 @@ fun AnalyzerTabsComposable(
     val longPressHelpEnabled by appStateRepository.longPressHelpEnabled.stateFlow.collectAsState()
     val reverseTuningWheel by appStateRepository.reverseTuningWheel.stateFlow.collectAsState()
     val controlDrawerSide by appStateRepository.controlDrawerSide.stateFlow.collectAsState()
+    val enableLowPerformanceMode by appStateRepository.enableLowPerformanceMode.stateFlow.collectAsState()
+    val lowPerformanceModeFilterQuality by appStateRepository.lowPerformanceModeFilterQuality.stateFlow.collectAsState()
     val showDebugInformation by appStateRepository.showDebugInformation.stateFlow.collectAsState()
     val loggingEnabled by appStateRepository.loggingEnabled.stateFlow.collectAsState()
     val viewportVerticalScaleMin by appStateRepository.viewportVerticalScaleMin.stateFlow.collectAsState()
@@ -204,8 +213,9 @@ fun AnalyzerTabsComposable(
                         rtlsdrExternalServerPort = rtlsdrExternalServerPort,
                         rtlsdrFrequencyCorrection = rtlsdrFrequencyCorrection,
                         rtlsdrConverterOffset = rtlsdrConverterOffset,
-                        rtlsdrAllowOutOfBoundFrequency = rtlsdrAllowOutOfBoundFrequency,
+                        rtlsdrFrequencyRestrictionsDisabled = rtlsdrFrequencyRestrictionsDisabled,
                         rtlsdrEnableBiasT = rtlsdrEnableBiasT,
+                        rtlsdrDirectSamplingMode = rtlsdrDirectSamplingMode,
                         airspyAdvancedGainEnabled = airspyAdvancedGainEnabled,
                         airspyVgaGain = airspyVgaGain,
                         airspyLnaGain = airspyLnaGain,
@@ -214,6 +224,11 @@ fun AnalyzerTabsComposable(
                         airspySensitivityGain = airspySensitivityGain,
                         airspyRfBiasEnabled = airspyRfBiasEnabled,
                         airspyConverterOffset = airspyConverterOffset,
+                        airspyHfAgcEnabled = airspyHfAgcEnabled,
+                        airspyHfAgcThreshold = airspyHfAgcThreshold,
+                        airspyHfAttenuation = airspyHfAttenuation,
+                        airspyHfLnaEnabled = airspyHfLnaEnabled,
+                        airspyHfConverterOffset = airspyHfConverterOffset,
                         hydraSdrAdvancedGainEnabled = hydraSdrAdvancedGainEnabled,
                         hydraSdrVgaGain = hydraSdrVgaGain,
                         hydraSdrLnaGain = hydraSdrLnaGain,
@@ -257,6 +272,8 @@ fun AnalyzerTabsComposable(
                         viewportZoom = viewportZoom,
                         audioVolumeLevel = audioVolumeLevel,
                         audioMuted = audioMuted,
+                        stationFavorites = stationFavorites,
+                        bandFavorites = bandFavorites,
                         demodulationTabActions = demodulationTabActions
                     )
                 AnalyzerTabs.RECORDING
@@ -286,6 +303,8 @@ fun AnalyzerTabsComposable(
                         longPressHelpEnabled = longPressHelpEnabled,
                         reverseTuningWheel = reverseTuningWheel,
                         controlDrawerSide = controlDrawerSide,
+                        enableLowPerformanceMode = enableLowPerformanceMode,
+                        lowPerformanceModeFilterQuality = lowPerformanceModeFilterQuality,
                         rtlsdrAllowOutOfBoundFrequency = rtlsdrAllowOutOfBoundFrequency,
                         showDebugInformation = showDebugInformation,
                         loggingEnabled = loggingEnabled,

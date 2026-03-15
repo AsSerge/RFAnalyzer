@@ -169,6 +169,40 @@ public class ComplexFirFilter {
 		return length;			// We return the number of consumed samples from the input buffers
 	}
 
+    /**
+     * FROM GNU Radio firdes::band_pass_2:
+     *
+     * Will calculate the tabs for the specified low pass filter and return a FirFilter instance
+     *
+     * @param decimation			decimation factor
+     * @param gain					filter pass band gain
+     * @param sampling_freq			sample rate
+     * @param low_cutoff_freq		cut off frequency (beginning of pass band)
+     * @param high_cutoff_freq		cut off frequency (end of pass band)
+     * @param transition_width		width from end of pass band to start stop band
+     * @param attenuation_dB		attenuation of stop band
+     * @return instance of FirFilter
+     */
+    public static ComplexFirFilter createBandPass(int decimation,
+                                                  float gain,
+                                                  float sampling_freq,    // Hz
+                                                  float low_cutoff_freq,      // Hz BEGINNING of transition band
+                                                  float high_cutoff_freq,      // Hz END of transition band
+                                                  float transition_width, // Hz width of transition band
+                                                  float attenuation_dB  // attenuation dB
+    ) {
+        return createBandPass(
+                decimation,
+                gain,
+                sampling_freq,
+                low_cutoff_freq,
+                high_cutoff_freq,
+                transition_width,
+                attenuation_dB,
+                0
+        );
+    }
+
 	/**
 	 * FROM GNU Radio firdes::band_pass_2:
 	 *
@@ -181,6 +215,7 @@ public class ComplexFirFilter {
 	 * @param high_cutoff_freq		cut off frequency (end of pass band)
 	 * @param transition_width		width from end of pass band to start stop band
 	 * @param attenuation_dB		attenuation of stop band
+     * @param maxTaps       		Maximum number of Filter Taps (0 = no limit)
 	 * @return instance of FirFilter
 	 */
 	public static ComplexFirFilter createBandPass(int decimation,
@@ -189,8 +224,9 @@ public class ComplexFirFilter {
 										  float low_cutoff_freq,      // Hz BEGINNING of transition band
 										  float high_cutoff_freq,      // Hz END of transition band
 										  float transition_width, // Hz width of transition band
-										  float attenuation_dB)   // attenuation dB
-	{
+										  float attenuation_dB,  // attenuation dB
+                                          int maxTaps  // Tap count will be limited by maxTaps. Value '0' means no limit
+    ) {
 		if (sampling_freq <= 0.0) {
 			Log.e(LOGTAG, "createBandPass: firdes check failed: sampling_freq > 0");
 			return null;
@@ -215,6 +251,8 @@ public class ComplexFirFilter {
 		// Based on formula from Multirate Signal Processing for
 		// Communications Systems, fredric j harris
 		int ntaps = (int)(attenuation_dB*sampling_freq/(22.0*transition_width));
+        if (maxTaps > 0 && ntaps > maxTaps)
+            ntaps = maxTaps;
 		if ((ntaps & 1) == 0)	// if even...
 			ntaps++;		// ...make odd
 

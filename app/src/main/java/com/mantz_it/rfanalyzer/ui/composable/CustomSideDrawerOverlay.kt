@@ -1,41 +1,59 @@
 package com.mantz_it.rfanalyzer.ui.composable
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -80,6 +98,8 @@ enum class DrawerSide {
     LEFT, RIGHT, BOTTOM
 }
 
+data class FabAction(val icon: ImageVector, val label: String, val customIconComposable: (@Composable () -> Unit)? = null, val onClick: () -> Unit)
+
 /**
  * A custom composable that provides a side drawer overlay.
  * This drawer slides in and out from either the left or right side of the screen and can be used to
@@ -102,8 +122,10 @@ enum class DrawerSide {
 fun CustomSideDrawerOverlay(
     isDrawerOpen: Boolean,
     onDismiss: () -> Unit,
+    onOpen: () -> Unit,
     drawerContent: @Composable () -> Unit,
     content: @Composable () -> Unit,
+    fabActions: List<FabAction>,
     modifier: Modifier = Modifier,
     drawerSizeExpanded: Dp = 350.dp,
     drawerWidth: Dp = 400.dp,
@@ -112,7 +134,6 @@ fun CustomSideDrawerOverlay(
     cornerRadius: Dp = 10.dp,
     dragThresholdFraction: Float = 0.7f,
     enableSwipe: Boolean = true,
-    fabOnClick: () -> Unit
 ) {
     // Coroutine scope for managing animations
     val scope = rememberCoroutineScope()
@@ -132,6 +153,9 @@ fun CustomSideDrawerOverlay(
     // It gets "frozen" because it's captured at the time the lambda is created, not updated dynamically.
     // As a workaround we have the currentDrawerSide variable which is always current even inside launch.
     val currentDrawerSide by rememberUpdatedState(drawerSide)
+
+    // State of the FAB menu:
+    var fabExpanded by remember { mutableStateOf(false) }
 
     // Offset for the drawer animation
     val offset = remember {
@@ -171,7 +195,7 @@ fun CustomSideDrawerOverlay(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
+    Box(modifier = modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.BottomEnd) {
         // Main screen content (add padding if the drawer is open and hides the left/right side)
         Box(modifier = when {
             (isDrawerOpen && drawerSide == DrawerSide.LEFT)  -> Modifier.padding(start = drawerWidth)
@@ -182,19 +206,42 @@ fun CustomSideDrawerOverlay(
             content()
         }
 
+        // Drawer open button (only when closed)
         if (!isDrawerOpen) {
-            // Show an action button to open the drawer
-            FloatingActionButton(
-                onClick = fabOnClick,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd) // Aligns to the bottom-right corner
-                    .padding(16.dp) // Adds padding between the FAB and the edge
-                    .border(1.dp, Color.White, shape = MaterialTheme.shapes.medium)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment =
+                    when (drawerSide) {
+                        DrawerSide.BOTTOM -> Alignment.BottomCenter
+                        DrawerSide.LEFT   -> Alignment.CenterStart
+                        DrawerSide.RIGHT  -> Alignment.CenterEnd
+                    }
             ) {
-                Icon(
-                    imageVector = Icons.Default.Settings, // Default Add icon
-                    contentDescription = "Open Drawer"
-                )
+                IconButton(
+                    onClick = onOpen,
+                    modifier = Modifier
+                        .padding(
+                            bottom = if (drawerSide == DrawerSide.BOTTOM) 24.dp else 0.dp,
+                            start = if (drawerSide == DrawerSide.LEFT) 16.dp else 0.dp,
+                            end   = if (drawerSide == DrawerSide.RIGHT) 16.dp else 0.dp
+                        )
+                        .size(56.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            shape = CircleShape,
+                        )
+                        .border(1.dp, Color.White, shape = CircleShape)
+                ) {
+                    Icon(
+                        imageVector =
+                            when (drawerSide) {
+                                DrawerSide.BOTTOM -> Icons.Default.KeyboardArrowUp
+                                DrawerSide.LEFT   -> Icons.Default.KeyboardArrowRight
+                                DrawerSide.RIGHT  -> Icons.Default.KeyboardArrowLeft
+                            },
+                        contentDescription = "Open Drawer",
+                    )
+                }
             }
         }
 
@@ -324,6 +371,109 @@ fun CustomSideDrawerOverlay(
             ) {
                 drawerContent()
             }
+        }
+
+        // FAB
+        if (fabExpanded) { // Close FAB menu when tapping outside
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            fabExpanded = false
+                        }
+                    }
+            )
+        }
+        val fabOffset = IntOffset( // offsets according to the drawer position
+            x = if (drawerSide == DrawerSide.BOTTOM) 0 else if (drawerSide == DrawerSide.LEFT) 0 else offset.value.toInt() - drawerWidthPx.toInt(),
+            y = if (drawerSide != DrawerSide.BOTTOM) 0 else offset.value.roundToInt() - drawerSizeFullScreenPx.toInt()
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier
+                .padding(bottom = 72.dp, end = 8.dp)
+                .offset { fabOffset }
+        ) {
+            for (action in fabActions) {
+                AnimatedVisibility(visible = fabExpanded, enter = fadeIn() + slideInHorizontally(), exit = fadeOut() + slideOutHorizontally()) {
+                    if (action.customIconComposable != null)
+                        FabActionComposableCustom(custom = action.customIconComposable, label = action.label, onClick = { action.onClick(); fabExpanded = false })
+                    else
+                        FabActionComposable(icon = action.icon, label = action.label, onClick = { action.onClick(); fabExpanded = false })
+                }
+            }
+        }
+        FloatingActionButton(
+            onClick = { fabExpanded = !fabExpanded },
+            containerColor = if (!fabExpanded) MaterialTheme.colorScheme.onPrimary else Color.Transparent,
+            modifier = Modifier
+                .padding(16.dp)
+                .offset { fabOffset }
+                .then(
+                    if (!fabExpanded) Modifier.border(1.dp, Color.White, shape = MaterialTheme.shapes.medium) else Modifier
+                )
+        ) {
+            if (fabExpanded) {
+                Surface(shape = CircleShape, shadowElevation = 4.dp, color = MaterialTheme.colorScheme.secondaryContainer) {
+                    Icon(Icons.Default.Close,
+                        contentDescription = "Close Menu",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(8.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            } else
+                Icon(Icons.Default.MenuBook, contentDescription = "Open Menu")
+        }
+    }
+}
+
+
+@Composable
+private fun FabActionComposable(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Surface(
+        shape = CircleShape,
+        shadowElevation = 4.dp,
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clickable { onClick() }
+                .padding(end = 12.dp)
+        ) {
+            Icon(
+                icon,
+                contentDescription = label,
+                modifier = Modifier
+                    .size(40.dp)
+                    .padding(8.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun FabActionComposableCustom(custom: @Composable () -> Unit, label: String, onClick: () -> Unit) {
+    Surface(
+        shape = CircleShape,
+        shadowElevation = 4.dp,
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clickable { onClick() }
+                .padding(end = 12.dp)
+        ) {
+            custom()
+            Text(label, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

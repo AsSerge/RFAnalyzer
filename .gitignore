@@ -25,3 +25,6 @@ app/src/main/assets/docs
 # Vim and ctags
 tags
 *.swp
+
+# tmp
+ipc

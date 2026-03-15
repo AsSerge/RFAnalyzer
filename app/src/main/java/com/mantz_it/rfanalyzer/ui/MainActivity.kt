@@ -74,7 +74,7 @@ import com.mantz_it.rfanalyzer.ui.composable.ScreenOrientation
 import com.mantz_it.rfanalyzer.ui.composable.SourceType
 import com.mantz_it.rfanalyzer.ui.screens.AboutScreen
 import com.mantz_it.rfanalyzer.ui.screens.ManualScreen
-import com.mantz_it.rfanalyzer.ui.screens.WelcomeScreen
+import com.mantz_it.rfanalyzer.ui.screens.TutorialScreen
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
@@ -83,8 +83,16 @@ import androidx.core.net.toUri
 import kotlinx.coroutines.delay
 import android.provider.Settings
 import androidx.compose.runtime.mutableStateOf
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.mantz_it.rfanalyzer.FileCopyService
+import com.mantz_it.rfanalyzer.R
 import com.mantz_it.rfanalyzer.ui.composable.FossDonationDialog
-import com.mantz_it.rfanalyzer.ui.composable.getUsageTimeStr
+import com.mantz_it.rfanalyzer.ui.composable.toTimeSpanString
+import com.mantz_it.rfanalyzer.ui.screens.StationsPage
+import com.mantz_it.rfanalyzer.ui.screens.BookmarkManagerScreen
+import com.mantz_it.rfanalyzer.ui.screens.BookmarkManagerViewModel
+import com.mantz_it.rfanalyzer.ui.screens.TutorialScreenCard
+import kotlin.collections.listOf
 
 /**
  * <h1>RF Analyzer - Main Activity</h1>
@@ -127,7 +135,6 @@ class MainActivity: ComponentActivity() {
 
     // Activity Launchers
     private lateinit var startRtlsdrDriverLauncher: ActivityResultLauncher<Intent>
-    private lateinit var openIQFileLauncher: ActivityResultLauncher<Intent>
 
     companion object {
         private const val TAG = "MainActivity"
@@ -187,6 +194,10 @@ class MainActivity: ComponentActivity() {
                         Toast.makeText( this@MainActivity, "Airspy Device attached.", Toast.LENGTH_SHORT).show()
                         if (!appStateRepository.analyzerRunning.value)
                             appStateRepository.sourceType.set(SourceType.AIRSPY)
+                    } else if (device.vendorId == 0x03eb && device.productId == 0x800c) {
+                        Toast.makeText( this@MainActivity, "AirspyHF Device attached.", Toast.LENGTH_SHORT).show()
+                        if (!appStateRepository.analyzerRunning.value)
+                            appStateRepository.sourceType.set(SourceType.AIRSPYHF)
                     } else if (device.vendorId == 0x38af && device.productId == 0x0001) {
                         Toast.makeText( this@MainActivity, "HydraSDR Device attached.", Toast.LENGTH_SHORT).show()
                         if (!appStateRepository.analyzerRunning.value)
@@ -318,6 +329,10 @@ class MainActivity: ComponentActivity() {
             squelchSatisfied = appStateRepository.squelchSatisfied,
             isFullVersion = appStateRepository.isFullVersion,
             fftProcessorData = appStateRepository.fftProcessorData,
+            stationListFlow = mainViewModel.displayedStations,
+            bandListFlow = mainViewModel.displayedBands,
+            displayStationsInFft = appStateRepository.displayStationsInFft,
+            displayBandsInFft = appStateRepository.displayBandsInFft,
             analyzerSurfaceActions = mainViewModel.analyzerSurfaceActions
         )
 
@@ -331,12 +346,24 @@ class MainActivity: ComponentActivity() {
                 val snackbarHostState = remember { SnackbarHostState() }
                 LaunchedEffect(Unit) {
                     mainViewModel.navigationEvent.collect { screen ->
-                        navController.navigate(screen.route + screen.subUrl) {
+                        var navigationTarget = screen.route + screen.subUrl
+                        if(screen.route == AppScreen.BookmarkManagerScreen().route && appStateRepository.displayBookmarkTutorial.value) {
+                            navigationTarget = AppScreen.BookmarksTutorial.route
+                        }
+                        navController.navigate(navigationTarget) {
                             // if we navigate to the main screen, make sure that the backstack is cleared:
+                            Log.d(TAG, "onCreate: navigationEvent: $screen")
                             if(screen == AppScreen.MainScreen) {
                                 // Pop up to the start destination (or a specific destination) and clear the backstack
                                 popUpTo(navController.graph.startDestinationId) {
                                     inclusive = true // Clear all destinations up to and including the start destination
+                                }
+                                launchSingleTop = true // Avoid re-creating the destination if it's already at the top
+                            }
+                            // if we navigate to the BookmarkManagerScreen, make sure the station tutorial is cleared from the backstack:
+                            if(screen == AppScreen.BookmarkManagerScreen()) {
+                                popUpTo(AppScreen.BookmarksTutorial.route) {
+                                    inclusive = true
                                 }
                                 launchSingleTop = true // Avoid re-creating the destination if it's already at the top
                             }
@@ -381,12 +408,86 @@ class MainActivity: ComponentActivity() {
                                                        AppScreen.WelcomeScreen.route,
                                 modifier = Modifier.padding(innerPadding)
                             ) {
-                                composable(AppScreen.WelcomeScreen.route) { WelcomeScreen(onFinish = {
-                                    appStateRepository.welcomeScreenFinished.set(true)
-                                    mainViewModel.navigate(AppScreen.MainScreen)
-                                }) }
-                                composable(AppScreen.MainScreen.route) { MainScreen(analyzerSurface, mainViewModel, appStateRepository, billingRepository) }
+                                composable(AppScreen.WelcomeScreen.route) {
+                                    TutorialScreen(
+                                        pages = listOf(
+                                            TutorialScreenCard("RF Analyzer 2.0", image = R.drawable.rfanalyzer2, description =
+                                                "RF Analyzer turns your Android device into a real-time spectrum analyzer for " +
+                                                "Software Defined Radio (SDR). \n\nVisualize and listen to radio signals around you" +
+                                                " - from amateur radio to broadcast signals and beyond." +
+                                                "\n\nThe TRIAL VERSION allows you to test compatibility with your hardware and lets you try all features."),
+                                            TutorialScreenCard("How To Start",
+                                                description = "This tutorial is also available on YouTube. \n\nThe 6-minute video guides you through the first steps with RF Analyzer. \n\nOr simply tap 'Next' to continue with the in-app tutorial.",
+                                                image = R.drawable.youtube_quick_start_tutorial,
+                                                imageLink = "https://www.youtube.com/watch?v=sui54fqbImw"),
+                                            TutorialScreenCard("Connect SDR","Plug your SDR dongle into the USB-OTG adapter and the USB-OTG adapter into your Android device.\n\nThe USB-OTG adapter sometimes comes with your phone or can be bought at very low cost. \nInstead of a USB-OTG adapter it is also possible to use a USB hub or docking station with USB-C connector.", image = R.drawable.tutorial_connect_sdr),
+                                            TutorialScreenCard("Select Source Type", "When you start the app, first select your SDR type in the Signal Source dropdown menu. \n\nThen press the PLAY button on the right.", image = R.drawable.tutorial_select_source),
+                                            TutorialScreenCard("RTL-SDR Driver", "To use RTL-SDR devices, an external driver app called \"RTL2832U\" must be installed first. If it's not found, RF Analyzer will prompt you to install it from the Google Play Store.\n\nOnce the driver is installed, return to RF Analyzer and press Play again.\n\nThis time, the driver should load and ask for permission to access the USB device.\n\nGrant permission - and the FFT plot should start displaying live spectrum data.", image = R.drawable.rtl2832u_driver_logo),
+                                            TutorialScreenCard("Explore the Spectrum","Explore the spectrum with scroll and zoom gestures. \n\nSwipe left or right inside the FFT or waterfall plot to browse the spectrum. The tuner automatically follows as you scroll.\n\nTo adjust how signals appear vertically, interact with the left axis of the FFT plot. Swipe up/down to shift the visible range or use pinch-to-zoom to adjust the scaling.", image = R.drawable.tutorial_explore),
+                                            TutorialScreenCard("Demodulate Signal","Go to the 'Demodulation' tab. \nSelect a mode, e.g. 'FM (wide)' for broadcast radio. \n\nTap on the signal in the FFT plot to move the channel selector. You can also use the tuning wheel. \nCongrats, now you should hear audio :-)", image = R.drawable.tutorial_enable_demodulation),
+                                            TutorialScreenCard("Tip: Context Help","A long-press on any label brings you directly to the respective section in the user manual. \n\nHave fun exploring!", image = R.drawable.tutorial_context_help),
+                                        ),
+                                        onFinish = {
+                                        appStateRepository.welcomeScreenFinished.set(true)
+                                        mainViewModel.navigate(AppScreen.MainScreen)
+                                    })
+                                }
+                                composable(AppScreen.MainScreen.route) { MainScreen(analyzerSurface, mainViewModel, appStateRepository) }
                                 composable(AppScreen.RecordingScreen.route) { RecordingsScreen(navController, mainViewModel.recordings, appStateRepository.displayOnlyFavoriteRecordings.stateFlow, mainViewModel.recordingsScreenActions) }
+                                composable(AppScreen.BookmarksTutorial.route) {
+                                    TutorialScreen(
+                                        pages = listOf(
+                                            TutorialScreenCard("Bookmark Manager", image = R.drawable.bookmark_manager, description =
+                                                "In the Bookmark Manager you can view and manage all your station and band bookmarks. " +
+                                                "Bookmarks are organized in lists. Create your own lists or use the default lists." +
+                                                "\n\nYou can also download online lists (e.g. shortwave radio stations) and enable " +
+                                                "automatic updates (e.g. for POTA/SOTA spot lists)."),
+                                            TutorialScreenCard("Video Tutorial",
+                                                description = "This tutorial is also available on YouTube. \n\nThe video guides you through the Bookmark Manager and has a short Quick Start Tutorial at the beginning. \n\nOr simply tap 'Next' to continue with the in-app tutorial.",
+                                                image = R.drawable.youtube_bookmarks_tutorial,
+                                                imageLink = "https://youtu.be/dY---2q4-Ag"),
+                                            TutorialScreenCard("Filter Bookmarks", image = R.drawable.bookmarks_filter, description =
+                                                "For your convenience, you can search through bookmarks and filter them by list, frequency, modulation, etc."),
+                                            TutorialScreenCard("Station & Band Labels", image = R.drawable.bookmarks_labels, description =
+                                                "Station and band labels are visible in the FFT display. A single press on a station label tunes in on a station, a long press shows information about the station." +
+                                                "\n\nThe labels can also be filtered or disabled in the Settings (see next slide)."),
+                                            TutorialScreenCard("Filter Labels in FFT", image = R.drawable.bookmarks_label_filter, description =
+                                                "Station and band labels in the FFT can be filtered to fit your needs." +
+                                                "\n\nYou may also choose to use the same filter settings for the labels in the FFT and the Bookmark Manager. " +
+                                                "Disabling 'Custom Filter for FFT' will show the same filtered bookmark labels as in the Bookmark Manager list view."),
+                                            TutorialScreenCard("Favorites", image = R.drawable.bookmarks_quick_access_dialog, description =
+                                                "Mark bookmarks as favorites (\u2665) to access them from the Quick Access Dialog.\n\n" +
+                                                "Open the Quick Access Dialog with this button (Demodulation Tab):",
+                                                secondImage = R.drawable.bookmark_favorites_button),
+                                            TutorialScreenCard("Import & Export", image = R.drawable.bookmarks_settings, description =
+                                                "You can import bookmarks from SDR# or SDR++.\n\n" +
+                                                "Export bookmarks to share them among RF Analyzer users or with other devices." +
+                                                "\n\nAlso remember to create a backup of your bookmarks regularly. Bookmarks are not synced to the cloud - they will be deleted when you reinstall the app!"),
+                                        ),
+                                        onFinish = {
+                                            appStateRepository.displayBookmarkTutorial.set(false)
+                                            mainViewModel.navigate(AppScreen.BookmarkManagerScreen())
+                                        })
+                                }
+                                composable(
+                                    route = "${AppScreen.BookmarkManagerScreen().route}{subUrl}",
+                                    arguments = listOf(
+                                        navArgument("subUrl") {
+                                            type = NavType.StringType
+                                            defaultValue = StationsPage.STATIONS.name
+                                            nullable = true
+                                        }
+                                    )
+                                ) { backstackEntry ->
+                                    val viewModel: BookmarkManagerViewModel = hiltViewModel()
+                                    val page: StationsPage? = backstackEntry.arguments?.getString("subUrl")?.let { subUrl -> StationsPage.entries.firstOrNull { it.name == subUrl } }
+                                    if (page != null) appStateRepository.bookmarkManagerScreenPage.set(page)
+                                    BookmarkManagerScreen(
+                                        viewModel = viewModel,
+                                        bookmarkManagerScreenActions = mainViewModel.bookmarkManagerScreenActions,
+                                        onPopBackStack = navController::popBackStack,
+                                    )
+                                }
                                 composable(AppScreen.LogFileScreen.route) { LogFileScreen(navController, mainViewModel.logContent) }
                                 composable(AppScreen.AboutScreen.route) { AboutScreen(versionName, navController) }
                                 composable(
@@ -412,7 +513,7 @@ class MainActivity: ComponentActivity() {
                                 }
                             } else if (showDonationDialog.value) {
                                 FossDonationDialog(
-                                    usageTimeStr = getUsageTimeStr(appStateRepository.appUsageTimeInSeconds.value),
+                                    usageTimeStr = (appStateRepository.appUsageTimeInSeconds.value*1000L).toTimeSpanString(),
                                     dismissAction = { showDonationDialog.value = false }
                                 )
                             }
@@ -428,7 +529,6 @@ class MainActivity: ComponentActivity() {
                 when (action) {
                     is UiAction.OnStartClicked -> onStartClickedAction()
                     is UiAction.OnStopClicked  -> onStopClickedAction()
-                    is UiAction.OnOpenIQFileClicked  -> onOpenIQFileClicked()
                     is UiAction.OnAutoscaleClicked -> analyzerSurface.autoscale()
                     is UiAction.ShowDialog -> AlertDialog.Builder(this@MainActivity)
                         .setTitle(action.title)
@@ -452,7 +552,7 @@ class MainActivity: ComponentActivity() {
                         Log.i(TAG, "UiAction.OnDeleteLogFileClicked: Deleting logfile ${LogcatLogger.logfileName}")
                         File(filesDir, LogcatLogger.logfileName).delete()
                     }
-                    is UiAction.OnSaveLogToFileClicked -> saveFileToUserDirectory(this@MainActivity, action.destUri, File(filesDir, LogcatLogger.logfileName))
+                    is UiAction.OnSaveLogToFileClicked -> saveFileToUserDirectory(action.destUri, File(filesDir, LogcatLogger.logfileName))
                     is UiAction.OnShareLogFileClicked -> shareFile(File(filesDir, LogcatLogger.logfileName), "text/plain", "Share log file via")
                     is UiAction.OnStartRecordingClicked -> if(isBound) analyzerService?.startRecording()
                     is UiAction.OnStopRecordingClicked -> if(isBound) analyzerService?.stopRecording()
@@ -466,9 +566,10 @@ class MainActivity: ComponentActivity() {
                         recordingsDir.mkdirs()
                     }
                     is UiAction.RenameFile -> renameFile(action.file, action.newName)
-                    is UiAction.OnSaveRecordingClicked -> saveFileToUserDirectory(this@MainActivity, action.destUri, File(action.filename))
+                    is UiAction.WriteInternalFileToFile -> saveFileToUserDirectory(action.destUri, File(action.filename))
                     is UiAction.OnShareRecordingClicked -> shareFile(File(action.filename), "application/octet-stream", "Share recording via")
                     is UiAction.OnBuyFullVersionClicked -> mainViewModel.buyFullVersion(this@MainActivity)
+                    is UiAction.OnStartExternalActivity -> startActivity(action.intent)
                     null -> Log.e(TAG, "mainViewModel.uiActions.collect: action is NULL!")
                 }
             }
@@ -506,22 +607,12 @@ class MainActivity: ComponentActivity() {
                 appStateRepository.analyzerStartPending.set(false)
 
                 mainViewModel.showSnackbar(
-                    MainViewModel.SnackbarEvent(
+                    SnackbarEvent(
                         message = "Error with RTL-SDR Driver: $errorMsg ($errorId): $detailedDescription ($exceptionCode)",
                         buttonText = null,
                         callback = { }
                     ),
                 )
-            }
-        }
-
-        // Initialize the launcher for opening the IQ file
-        openIQFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                val uri: Uri? = result.data?.data
-                Log.d(TAG, "openIQFileLauncher result: URI: $uri")
-                if (uri != null)
-                    setFileSourceFromContentUri(uri)
             }
         }
 
@@ -533,14 +624,17 @@ class MainActivity: ComponentActivity() {
         }
     }
 
-    private fun requestNotificationPermission(requestPermissionLauncher: ActivityResultLauncher<String>) {
+    private fun requestNotificationPermission(
+        requestPermissionLauncher: ActivityResultLauncher<String>,
+        message: String = "This app needs permission to display a notification while the analyzer service is running in the background.",
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
 
             val askedAlready = appStateRepository.notificationPermissionAskedAtLeastOnce.value
             // Show a dialog that explains why we need the permission
             AlertDialog.Builder(this)
                 .setTitle("Background Notification")
-                .setMessage("The app needs permission to display a notification while the analyzer service is running in the background.")
+                .setMessage(message)
                 .setPositiveButton(
                     if(askedAlready) "Go to Settings" else "OK"
                 ) { dialog, whichButton ->
@@ -580,13 +674,13 @@ class MainActivity: ComponentActivity() {
                 lifecycleScope.launch {
                     Log.d(TAG, "handleIncomingFile: Analyzer is running. Show dialog to the user after 1 second delay")
                     delay(1000)
-                    mainViewModel.showSnackbar(MainViewModel.SnackbarEvent(
+                    mainViewModel.showSnackbar(SnackbarEvent(
                         message = "Load incoming file into File Source? (Analyzer will stop!)",
                         buttonText = "Load File",
                         callback = {
                             onStopClickedAction()
                             setFileSourceFromContentUri(uri)
-                            mainViewModel.showSnackbar(MainViewModel.SnackbarEvent("File loaded. Press PLAY to start Analyzer!"))
+                            mainViewModel.showSnackbar(SnackbarEvent("File loaded. Press PLAY to start Analyzer!"))
                         }
                     ))
                 }
@@ -651,15 +745,6 @@ class MainActivity: ComponentActivity() {
         }
     }
 
-    private fun onOpenIQFileClicked() {
-        // Show system file chooser
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*" // Allow any file type
-        }
-        openIQFileLauncher.launch(intent)
-    }
-
     private fun setFileSourceFromContentUri(uri: Uri) {
         var filename: String? = null
         contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -720,21 +805,55 @@ class MainActivity: ComponentActivity() {
         }
     }
 
-    private fun saveFileToUserDirectory(context: Context, destUri: Uri, srcFile: File) {
+    private fun saveFileToUserDirectory(destUri: Uri, srcFile: File) {
         try {
-            val contentResolver = context.contentResolver
+            val contentResolver = contentResolver
             if (!srcFile.exists()) {
                 Log.w(TAG, "saveFileToUserDirectory: File ${srcFile.absolutePath} does not exist!")
                 return
             }
-            contentResolver.openOutputStream(destUri)?.use { outputStream ->
-                srcFile.inputStream().use { inputStream ->
-                    inputStream.copyTo(outputStream) // Copy file contents
+            if (srcFile.length() > 10*1024*1024) { // use background service for files larger than 10MB
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        Log.d(TAG, "saveFileToUserDirectory: No permission for background notification.")
+                        mainViewModel.showSnackbar(SnackbarEvent(
+                            message = "Missing Permission. Cannot export file.",
+                            buttonText = "Give Permission",
+                            callback = {
+                                val requestPermissionLauncher = registerForActivityResult(
+                                    ActivityResultContracts.RequestPermission()
+                                ) { isGranted ->
+                                    if (isGranted) {
+                                        Log.d(TAG, "POST_NOTIFICATIONS permission granted.")
+                                    } else {
+                                        Log.w(TAG, "POST_NOTIFICATIONS permission denied.")
+                                    }
+                                }
+                                requestNotificationPermission(requestPermissionLauncher, "This app needs the permission to display notifications while exporting files in the background.")
+                            }
+                        ))
+                        return
+                    }
+                }
+                if (FileCopyService.Companion.FileCopyState.isRunning.value)
+                    mainViewModel.showSnackbar(SnackbarEvent(
+                        message = "Another Export is running...",
+                        buttonText = null,
+                        callback = {}
+                    ))
+                else
+                    FileCopyService.start(this, srcFile, destUri)
+            } else {
+                // Small files don't need the background service
+                contentResolver.openOutputStream(destUri)?.use { outputStream ->
+                    srcFile.inputStream().use { inputStream ->
+                        inputStream.copyTo(outputStream) // Copy file contents
+                    }
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Failed to save file ($e)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Failed to save file ($e)", Toast.LENGTH_SHORT).show()
         }
     }
 

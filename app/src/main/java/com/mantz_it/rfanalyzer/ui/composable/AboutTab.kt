@@ -11,15 +11,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.mantz_it.rfanalyzer.BuildConfig
 import com.mantz_it.rfanalyzer.R
+import com.mantz_it.rfanalyzer.ui.AppScreen
 import com.mantz_it.rfanalyzer.ui.RFAnalyzerTheme
 
 /**
@@ -65,20 +71,9 @@ import com.mantz_it.rfanalyzer.ui.RFAnalyzerTheme
 data class AboutTabActions(
     val onAboutClicked: () -> Unit,
     val onManualClicked: () -> Unit,
-    val onTutorialClicked: () -> Unit,
+    val onTutorialClicked: (AppScreen) -> Unit,
     val onBuyFullVersionClicked: () -> Unit
 )
-
-fun getUsageTimeStr(appUsageTime: Int): String {
-    val hours = appUsageTime / 60 / 60
-    val minutes = appUsageTime % (60*60) / 60
-    val seconds = appUsageTime % 60
-    val hoursStr = if (hours > 0) "$hours hour${if(hours != 1) "s" else ""}" else ""
-    val minutesStr = "$minutes minute${if(minutes != 1) "s" else ""}"
-    val secondsStr = if (hours == 0) "$seconds second${if(seconds != 1) "s" else ""}" else ""
-    val usageTimeStr = if(hours > 0) "$hoursStr and $minutesStr" else "$minutesStr and $secondsStr"
-    return usageTimeStr
-}
 
 @Composable
 fun AboutTabComposable(
@@ -92,6 +87,7 @@ fun AboutTabComposable(
 ) {
     val context = LocalContext.current
     val buttonHeight = 60.dp
+    var showTutorialDialog by remember { mutableStateOf(false) }
 
     ScrollableColumnWithFadingEdge {
         Column(
@@ -100,7 +96,7 @@ fun AboutTabComposable(
                 .padding(vertical = 10.dp)
                 .border(2.dp, MaterialTheme.colorScheme.tertiary, shape = MaterialTheme.shapes.medium) // Border
         ) {
-            val usageTimeStr = getUsageTimeStr(appUsageTime)
+            val usageTimeStr = (appUsageTime*1000L).toTimeSpanString()
 
             if (BuildConfig.IS_FOSS) {
                 Text(
@@ -207,18 +203,33 @@ fun AboutTabComposable(
                     modifier = Modifier.size(75.dp)
                 )
             }
-            Button(onClick = aboutTabActions.onTutorialClicked,
+            Button(onClick = { showTutorialDialog = true },
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier
                     .height(buttonHeight)
                     .padding(start = 3.dp)
                     .weight(1f)
-            ) { Text("Tutorial") }
+            ) { Text("Tutorials") }
         }
 
         Text("RF Analyzer - Version $appVersion ($appBuildType)",
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top=16.dp))
     }
+
+    if (showTutorialDialog) {
+        AlertDialog(
+            onDismissRequest = { showTutorialDialog = false },
+            title = { Text("Select Tutorial") },
+            text = {
+                Column {
+                    TextButton(onClick = { showTutorialDialog = false; aboutTabActions.onTutorialClicked(AppScreen.WelcomeScreen) }) { Text("RF Analyzer Quick Start") }
+                    TextButton(onClick = { showTutorialDialog = false; aboutTabActions.onTutorialClicked(AppScreen.BookmarksTutorial) }) { Text("Bookmark Manager Tutorial") }
+                }
+            },
+            confirmButton = {}
+        )
+    }
+
 }
 
 @Preview
@@ -228,7 +239,7 @@ fun AboutTabPreview() {
     CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
         RFAnalyzerTheme {
             AboutTabComposable(
-                appUsageTime = 60*60+60*3,
+                appUsageTime = 60*60+60*3+13,
                 isAppUsageTimeUsedUp = false,
                 isFullVersion = false,
                 isPurchasePending = true,

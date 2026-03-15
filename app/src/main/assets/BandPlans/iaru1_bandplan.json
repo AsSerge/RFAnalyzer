@@ -1,0 +1,676 @@
+{
+  "metadata": {
+      "schemaVersion": 2,
+      "appName": "RF Analyzer",
+      "appVersion": "2.1.1"
+    },
+  "bookmarkLists": [
+    ],
+  "stations": [
+    ],
+  "bands": [
+    {
+      "id": 1,
+      "name": "160 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 1810000,
+      "endFrequency": 2000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 1810000,
+          "endFrequency": 1838000,
+          "notes": "CW and narrowband modes; QRP center at 1836 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 1838000,
+          "endFrequency": 1840000,
+          "notes": "Narrowband digimodes"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 1840000,
+          "endFrequency": 2000000,
+          "notes": "Mixed use; voice, SSB, and digital; LSB recommended"
+        }
+      ],
+      "notes": "Top band used mainly for CW, data, and SSB; LSB voice below 10 MHz.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 2,
+      "name": "80 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 3500000,
+      "endFrequency": 3800000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 3500000,
+          "endFrequency": 3560000,
+          "notes": "CW and contest-preferred zone; QRP at 3555 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 3570000,
+          "endFrequency": 3600000,
+          "notes": "RTTY, PSK, and other digimodes; some unattended data stations"
+        },
+        {
+          "version": 1,
+          "name": "SSB",
+          "startFrequency": 3600000,
+          "endFrequency": 3800000,
+          "notes": "Voice and all modes; SSB contest-preferred; LSB recommended"
+        }
+      ],
+      "notes": "Popular for night-time operation; CW at lower edge, digital mid-band, SSB upper end.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 3,
+      "name": "60 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 5351500,
+      "endFrequency": 5366500,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW/Data",
+          "startFrequency": 5351500,
+          "endFrequency": 5354000,
+          "notes": "CW and narrowband digital modes"
+        },
+        {
+          "version": 1,
+          "name": "USB",
+          "startFrequency": 5354000,
+          "endFrequency": 5366000,
+          "notes": "All modes; USB recommended for voice operation"
+        },
+        {
+          "version": 1,
+          "name": "Weak-signal",
+          "startFrequency": 5366000,
+          "endFrequency": 5366500,
+          "notes": "Very narrow weak-signal subband"
+        }
+      ],
+      "notes": "WRC-15 allocation; USB voice recommended; maximum 15 kHz bandwidth.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 4,
+      "name": "40 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 7000000,
+      "endFrequency": 7200000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 7000000,
+          "endFrequency": 7040000,
+          "notes": "CW and narrowband; QRP at 7030 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 7040000,
+          "endFrequency": 7053000,
+          "notes": "RTTY/PSK and digimodes; some unattended stations"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 7053000,
+          "endFrequency": 7200000,
+          "notes": "SSB, digital voice, data; LSB recommended"
+        }
+      ],
+      "notes": "Busy worldwide band; CW low end, data mid, SSB upper 100 kHz.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+
+    {
+      "id": 5,
+      "name": "30 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 10100000,
+      "endFrequency": 10150000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 10100000,
+          "endFrequency": 10130000,
+          "notes": "CW only; QRP at 10116 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 10130000,
+          "endFrequency": 10150000,
+          "notes": "Digital narrowband modes only"
+        }
+      ],
+      "notes": "Contest-free WARC band; CW and narrow data only, no SSB allowed.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+
+    {
+      "id": 6,
+      "name": "20 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 14000000,
+      "endFrequency": 14350000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 14000000,
+          "endFrequency": 14070000,
+          "notes": "CW low end; QRP at 14060 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 14070000,
+          "endFrequency": 14112000,
+          "notes": "RTTY/PSK and other digimodes; includes beacon segment"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 14112000,
+          "endFrequency": 14350000,
+          "notes": "SSB and all modes; USB recommended"
+        }
+      ],
+      "notes": "Major DX band; CW at bottom, data mid-band, SSB upper portion.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+
+    {
+      "id": 7,
+      "name": "17 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 18068000,
+      "endFrequency": 18168000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 18068000,
+          "endFrequency": 18095000,
+          "notes": "CW low end; QRP at 18086 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 18095000,
+          "endFrequency": 18120000,
+          "notes": "Digital narrowband modes; includes beacon segment"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 18120000,
+          "endFrequency": 18168000,
+          "notes": "USB voice and all modes"
+        }
+      ],
+      "notes": "WARC band; contest-free; good daytime DX performance.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+
+    {
+      "id": 8,
+      "name": "15 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 21000000,
+      "endFrequency": 21450000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 21000000,
+          "endFrequency": 21070000,
+          "notes": "CW only; QRP at 21060 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 21070000,
+          "endFrequency": 21120000,
+          "notes": "Digital modes and narrowband data"
+        },
+        {
+          "version": 1,
+          "name": "Mixed",
+          "startFrequency": 21120000,
+          "endFrequency": 21149000,
+          "notes": "Primarily data; some mixed digital/other narrow modes"
+        },
+        {
+          "version": 1,
+          "name": "Beacons",
+          "startFrequency": 21149000,
+          "endFrequency": 21151000,
+          "notes": "IARU international beacons"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 21151000,
+          "endFrequency": 21450000,
+          "notes": "SSB, data, all modes; USB recommended"
+        }
+      ],
+      "notes": "High-frequency DX band; wide all-modes segment above 21.150 MHz.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 9,
+      "name": "12 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 24890000,
+      "endFrequency": 24990000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 24890000,
+          "endFrequency": 24915000,
+          "notes": "CW only; QRP at 24906 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 24915000,
+          "endFrequency": 24929000,
+          "notes": "Digital narrowband modes; includes unattended digimodes"
+        },
+        {
+          "version": 1,
+          "name": "Beacons",
+          "startFrequency": 24929000,
+          "endFrequency": 24931000,
+          "notes": "IARU international beacon segment"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 24931000,
+          "endFrequency": 24990000,
+          "notes": "USB voice and all modes; QRP at 24950 kHz"
+        }
+      ],
+      "notes": "WARC band; contest-free; good daytime DX band.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+
+    {
+      "id": 10,
+      "name": "10 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 28000000,
+      "endFrequency": 29700000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "CW",
+          "startFrequency": 28000000,
+          "endFrequency": 28070000,
+          "notes": "CW segment; QRP at 28060 kHz"
+        },
+        {
+          "version": 1,
+          "name": "Data",
+          "startFrequency": 28070000,
+          "endFrequency": 28150000,
+          "notes": "Digital narrowband modes; includes unattended digimodes"
+        },
+        {
+          "version": 1,
+          "name": "Narrow Data",
+          "startFrequency": 28150000,
+          "endFrequency": 28190000,
+          "notes": "Additional narrowband digital segment"
+        },
+        {
+          "version": 1,
+          "name": "Beacons",
+          "startFrequency": 28190000,
+          "endFrequency": 28225000,
+          "notes": "Regional and worldwide time-shared beacon allocation"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 28225000,
+          "endFrequency": 29000000,
+          "notes": "SSB, data, all modes; includes digital voice COAs"
+        },
+        {
+          "version": 1,
+          "name": "FM",
+          "startFrequency": 29000000,
+          "endFrequency": 29100000,
+          "notes": "All modes with 6 kHz max bandwidth; FM simplex"
+        },
+        {
+          "version": 1,
+          "name": "FM Simplex",
+          "startFrequency": 29100000,
+          "endFrequency": 29200000,
+          "notes": "FM simplex channels (10 kHz)"
+        },
+        {
+          "version": 1,
+          "name": "Digital/FM",
+          "startFrequency": 29200000,
+          "endFrequency": 29300000,
+          "notes": "Digimodes and unattended stations"
+        },
+        {
+          "version": 1,
+          "name": "Satellites",
+          "startFrequency": 29300000,
+          "endFrequency": 29510000,
+          "notes": "Amateur satellite links"
+        },
+        {
+          "version": 1,
+          "name": "FM Repeater Inputs",
+          "startFrequency": 29520000,
+          "endFrequency": 29590000,
+          "notes": "FM repeater inputs RH1–RH8"
+        },
+        {
+          "version": 1,
+          "name": "FM Call",
+          "startFrequency": 29600000,
+          "endFrequency": 29610000,
+          "notes": "FM calling channel"
+        },
+        {
+          "version": 1,
+          "name": "FM Repeater Outputs",
+          "startFrequency": 29620000,
+          "endFrequency": 29700000,
+          "notes": "FM repeater outputs RH1–RH8"
+        }
+      ],
+      "notes": "Very wide band; supports CW, data, SSB, FM, beacons, and satellite operations.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 11,
+      "name": "2 meters",
+      "categoryId": 0,
+      "startFrequency": 144000000,
+      "endFrequency": 146000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "Satellites",
+          "startFrequency": 144000000,
+          "endFrequency": 144025000,
+          "notes": "Satellite downlinks"
+        },
+        {
+          "version": 1,
+          "name": "CW/Weak signal",
+          "startFrequency": 144025000,
+          "endFrequency": 144150000,
+          "notes": "CW, EME, meteor scatter"
+        },
+        {
+          "version": 1,
+          "name": "SSB/CW",
+          "startFrequency": 144150000,
+          "endFrequency": 144400000,
+          "notes": "Weak-signal SSB and CW; SSB calling around 144.300 MHz"
+        },
+        {
+          "version": 1,
+          "name": "Beacons",
+          "startFrequency": 144400000,
+          "endFrequency": 144490000,
+          "notes": "Propagation beacons"
+        },
+        {
+          "version": 1,
+          "name": "Mixed modes",
+          "startFrequency": 144500000,
+          "endFrequency": 144794000,
+          "notes": "FM, digital voice, image modes, general simplex"
+        },
+        {
+          "version": 1,
+          "name": "Digital",
+          "startFrequency": 144794000,
+          "endFrequency": 144962500,
+          "notes": "Digital communications; includes APRS at 144.800 MHz"
+        },
+        {
+          "version": 1,
+          "name": "Repeater inputs",
+          "startFrequency": 144975000,
+          "endFrequency": 145194000,
+          "notes": "FM/DV repeater input channels"
+        },
+        {
+          "version": 1,
+          "name": "Mixed modes",
+          "startFrequency": 145200000,
+          "endFrequency": 145562500,
+          "notes": "General simplex operation; FM calling at 145.500 MHz"
+        },
+        {
+          "version": 1,
+          "name": "Repeater outputs",
+          "startFrequency": 145575000,
+          "endFrequency": 145793000,
+          "notes": "FM repeater outputs"
+        },
+        {
+          "version": 1,
+          "name": "Mixed modes",
+          "startFrequency": 145794000,
+          "endFrequency": 146000000,
+          "notes": "Satellite links and general modes"
+        }
+      ],
+      "notes": "Primary VHF amateur band in Region 1 (144–146 MHz).",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 12,
+      "name": "70 centimeters",
+      "categoryId": 0,
+      "startFrequency": 430000000,
+      "endFrequency": 440000000,
+      "subBands": [
+        {
+          "version": 1,
+          "name": "FM repeater outputs",
+          "startFrequency": 430025000,
+          "endFrequency": 430375000,
+          "notes": "FM repeater outputs (1.6 MHz shift)"
+        },
+        {
+          "version": 1,
+          "name": "Digital",
+          "startFrequency": 430400000,
+          "endFrequency": 430575000,
+          "notes": "Digital communication channels"
+        },
+        {
+          "version": 1,
+          "name": "Digital repeaters",
+          "startFrequency": 430600000,
+          "endFrequency": 430925000,
+          "notes": "Digital communication repeater channels"
+        },
+        {
+          "version": 1,
+          "name": "Multimode",
+          "startFrequency": 430925000,
+          "endFrequency": 431025000,
+          "notes": "Multimode channels"
+        },
+        {
+          "version": 1,
+          "name": "Repeater inputs",
+          "startFrequency": 431050000,
+          "endFrequency": 431825000,
+          "notes": "Repeater inputs (7.6 MHz shift)"
+        },
+        {
+          "version": 1,
+          "name": "Repeater inputs",
+          "startFrequency": 431625000,
+          "endFrequency": 431975000,
+          "notes": "Repeater inputs (1.6 MHz shift)"
+        },
+        {
+          "version": 1,
+          "name": "CW/Data",
+          "startFrequency": 432000000,
+          "endFrequency": 432100000,
+          "notes": "CW and narrowband digital modes"
+        },
+        {
+          "version": 1,
+          "name": "SSB/CW",
+          "startFrequency": 432100000,
+          "endFrequency": 432400000,
+          "notes": "SSB and CW weak-signal segment"
+        },
+        {
+          "version": 1,
+          "name": "Beacons",
+          "startFrequency": 432400000,
+          "endFrequency": 432490000,
+          "notes": "Beacon segment exclusive"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 432500000,
+          "endFrequency": 432600000,
+          "notes": "General all-mode channels"
+        },
+        {
+          "version": 1,
+          "name": "Repeater inputs",
+          "startFrequency": 432600000,
+          "endFrequency": 432987500,
+          "notes": "Standard repeater inputs (25 kHz spacing, 2 MHz shift)"
+        },
+        {
+          "version": 1,
+          "name": "FM repeaters",
+          "startFrequency": 433000000,
+          "endFrequency": 433375000,
+          "notes": "FM and digital voice repeaters (1.6MHz shift)"
+        },
+        {
+          "version": 1,
+          "name": "FM/DV simplex",
+          "startFrequency": 433400000,
+          "endFrequency": 433575000,
+          "notes": "FM, digital voice and SSTV activity"
+        },
+        {
+          "version": 1,
+          "name": "Mixed",
+          "startFrequency": 433600000,
+          "endFrequency": 434000000,
+          "notes": "General mixed modes including digital channels"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 434000000,
+          "endFrequency": 434594000,
+          "notes": "All modes including ATV and digital"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 434594000,
+          "endFrequency": 434981000,
+          "notes": "All modes including repeater outputs"
+        },
+        {
+          "version": 1,
+          "name": "Satellites",
+          "startFrequency": 435000000,
+          "endFrequency": 436000000,
+          "notes": "Amateur satellite service"
+        },
+        {
+          "version": 1,
+          "name": "Satellites/DATV",
+          "startFrequency": 436000000,
+          "endFrequency": 438000000,
+          "notes": "Satellite service and DATV/data"
+        },
+        {
+          "version": 1,
+          "name": "All modes",
+          "startFrequency": 438000000,
+          "endFrequency": 440000000,
+          "notes": "General all-mode segment including digital links and repeater outputs"
+        }
+      ],
+      "notes": "IARU Region 1 70 cm band plan (430–440 MHz) based solely on the official UHF band plan document.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    }
+  ]
+}

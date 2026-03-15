@@ -1,0 +1,365 @@
+{
+  "metadata": {
+      "schemaVersion": 2,
+      "appName": "RF Analyzer",
+      "appVersion": "2.1.1"
+    },
+  "bookmarkLists": [
+    ],
+  "stations": [
+    ],
+  "bands": [
+    {
+      "id": 1,
+      "name": "160 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 1800000,
+      "endFrequency": 2000000,
+      "subBands": [
+        { "version": 1, "name": "CW", "startFrequency": 1800000, "endFrequency": 2000000, "notes": "" },
+        { "version": 1, "name": "Digital", "startFrequency": 1800000, "endFrequency": 1810000, "notes": "" },
+        { "version": 1, "name": "CW QRP", "startFrequency": 1810000, "endFrequency": 1810000, "notes": "QRP center" },
+        { "version": 1, "name": "SSB/SSTV", "startFrequency": 1843000, "endFrequency": 2000000, "notes": "Wideband modes" },
+        { "version": 1, "name": "SSB QRP", "startFrequency": 1910000, "endFrequency": 1910000, "notes": "QRP calling" },
+        { "version": 1, "name": "Experimental", "startFrequency": 1995000, "endFrequency": 2000000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 1999000, "endFrequency": 2000000, "notes": "" }
+      ],
+      "notes": "Topband with mixed CW, SSB, digital, and experimental allocations.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 2,
+      "name": "80 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 3500000,
+      "endFrequency": 4000000,
+      "subBands": [
+        { "version": 1, "name": "RTTY/Data", "startFrequency": 3570000, "endFrequency": 3600000, "notes": "" },
+        { "version": 1, "name": "RTTY/Data DX", "startFrequency": 3590000, "endFrequency": 3590000, "notes": "" },
+        { "version": 1, "name": "DX Window", "startFrequency": 3790000, "endFrequency": 3800000, "notes": "" },
+        { "version": 1, "name": "SSTV", "startFrequency": 3845000, "endFrequency": 3845000, "notes": "" },
+        { "version": 1, "name": "AM Calling", "startFrequency": 3885000, "endFrequency": 3885000, "notes": "" }
+      ],
+      "notes": "Major nighttime HF band; rich in CW, data, and SSB activity.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 3,
+      "name": "60 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 5330500,
+      "endFrequency": 5403500,
+      "subBands": [
+        { "version": 1, "name": "USB + CW/RTTY/Data", "startFrequency": 5330500, "endFrequency": 5403500, "notes": "5 fixed channels, 100 W ERP limit" }
+      ],
+      "notes": "Channelized band with limited power and mode restrictions.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 4,
+      "name": "40 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 7000000,
+      "endFrequency": 7300000,
+      "subBands": [
+        { "version": 1, "name": "RTTY/Data DX", "startFrequency": 7040000, "endFrequency": 7040000, "notes": "" },
+        { "version": 1, "name": "RTTY/Data", "startFrequency": 7080000, "endFrequency": 7125000, "notes": "" },
+        { "version": 1, "name": "SSTV", "startFrequency": 7171000, "endFrequency": 7171000, "notes": "" },
+        { "version": 1, "name": "AM Calling", "startFrequency": 7290000, "endFrequency": 7290000, "notes": "" }
+      ],
+      "notes": "Classic day/night band, mix of digital and SSB.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 5,
+      "name": "30 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 10100000,
+      "endFrequency": 10150000,
+      "subBands": [
+        { "version": 1, "name": "RTTY", "startFrequency": 10130000, "endFrequency": 10140000, "notes": "" },
+        { "version": 1, "name": "Packet", "startFrequency": 10140000, "endFrequency": 10150000, "notes": "" }
+      ],
+      "notes": "Narrow-band digital and CW only (no SSB).",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 6,
+      "name": "20 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 14000000,
+      "endFrequency": 14350000,
+      "subBands": [
+        { "version": 1, "name": "RTTY", "startFrequency": 14070000, "endFrequency": 14095000, "notes": "" },
+        { "version": 1, "name": "Packet", "startFrequency": 14095000, "endFrequency": 14112000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 14100000, "endFrequency": 14100000, "notes": "NCDXF network" },
+        { "version": 1, "name": "SSTV", "startFrequency": 14230000, "endFrequency": 14230000, "notes": "" },
+        { "version": 1, "name": "AM Calling", "startFrequency": 14286000, "endFrequency": 14286000, "notes": "" }
+      ],
+      "notes": "Most popular worldwide DX band.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 7,
+      "name": "17 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 18068000,
+      "endFrequency": 18168000,
+      "subBands": [
+        { "version": 1, "name": "RTTY", "startFrequency": 18100000, "endFrequency": 18105000, "notes": "" },
+        { "version": 1, "name": "Packet", "startFrequency": 18105000, "endFrequency": 18110000, "notes": "" }
+      ],
+      "notes": "Narrow-band band for digital and SSB, no contests.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 8,
+      "name": "15 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 21000000,
+      "endFrequency": 21450000,
+      "subBands": [
+        { "version": 1, "name": "RTTY/Data", "startFrequency": 21070000, "endFrequency": 21110000, "notes": "" },
+        { "version": 1, "name": "SSTV", "startFrequency": 21340000, "endFrequency": 21340000, "notes": "" }
+      ],
+      "notes": "Good daylight DX band with digital and image activity.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 9,
+      "name": "10 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 28000000,
+      "endFrequency": 29700000,
+      "subBands": [
+        { "version": 1, "name": "CW", "startFrequency": 28000000, "endFrequency": 28070000, "notes": "" },
+        { "version": 1, "name": "RTTY", "startFrequency": 28070000, "endFrequency": 28150000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 28200000, "endFrequency": 28300000, "notes": "" },
+        { "version": 1, "name": "Phone", "startFrequency": 28300000, "endFrequency": 29300000, "notes": "" },
+        { "version": 1, "name": "SSTV", "startFrequency": 28680000, "endFrequency": 28680000, "notes": "" },
+        { "version": 1, "name": "AM", "startFrequency": 29000000, "endFrequency": 29200000, "notes": "" },
+        { "version": 1, "name": "FM Simplex", "startFrequency": 29600000, "endFrequency": 29600000, "notes": "" }
+      ],
+      "notes": "Wide band covering CW, phone, FM, and satellite subbands.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 10,
+      "name": "6 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 50000000,
+      "endFrequency": 54000000,
+      "subBands": [
+        { "version": 1, "name": "CW/SSB", "startFrequency": 50000000, "endFrequency": 50500000, "notes": "CW/SSB calling below 50.125 MHz" },
+        { "version": 1, "name": "SSB Calling", "startFrequency": 50125000, "endFrequency": 50125000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 50080000, "endFrequency": 50100000, "notes": "" },
+        { "version": 1, "name": "Digital", "startFrequency": 50300000, "endFrequency": 50400000, "notes": "" },
+        { "version": 1, "name": "AM", "startFrequency": 50725000, "endFrequency": 50725000, "notes": "" },
+        { "version": 1, "name": "FM Simplex", "startFrequency": 52000000, "endFrequency": 54000000, "notes": "FM & repeaters; 52–54 MHz" }
+      ],
+      "notes": "6 m 'Magic Band' with SSB, CW, FM, and digital; propagation seasonal.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 11,
+      "name": "2 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 144000000,
+      "endFrequency": 148000000,
+      "subBands": [
+        { "version": 1, "name": "CW", "startFrequency": 144000000, "endFrequency": 144100000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 144275000, "endFrequency": 144300000, "notes": "" },
+        { "version": 1, "name": "SSB/CW", "startFrequency": 144100000, "endFrequency": 144300000, "notes": "" },
+        { "version": 1, "name": "SSB Calling", "startFrequency": 144200000, "endFrequency": 144200000, "notes": "" },
+        { "version": 1, "name": "Digital", "startFrequency": 144300000, "endFrequency": 144500000, "notes": "" },
+        { "version": 1, "name": "FM Simplex", "startFrequency": 146400000, "endFrequency": 146580000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Inputs", "startFrequency": 144500000, "endFrequency": 144900000, "notes": "Regional variation" },
+        { "version": 1, "name": "FM Repeater Outputs", "startFrequency": 145100000, "endFrequency": 145500000, "notes": "" },
+        { "version": 1, "name": "Satellite", "startFrequency": 145800000, "endFrequency": 146000000, "notes": "" }
+      ],
+      "notes": "Most active VHF band; voice, digital, repeaters, satellites.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 12,
+      "name": "1.25 meters",
+      "bookmarkListId": 0,
+      "startFrequency": 222000000,
+      "endFrequency": 225000000,
+      "subBands": [
+        { "version": 1, "name": "CW/SSB", "startFrequency": 222000000, "endFrequency": 222150000, "notes": "" },
+        { "version": 1, "name": "SSB Calling", "startFrequency": 222100000, "endFrequency": 222100000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 222050000, "endFrequency": 222060000, "notes": "" },
+        { "version": 1, "name": "FM Simplex", "startFrequency": 223400000, "endFrequency": 223580000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Inputs", "startFrequency": 222500000, "endFrequency": 223000000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Outputs", "startFrequency": 223600000, "endFrequency": 224100000, "notes": "" }
+      ],
+      "notes": "Medium-use band; primarily FM and weak-signal work.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 13,
+      "name": "70 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 420000000,
+      "endFrequency": 450000000,
+      "subBands": [
+        { "version": 1, "name": "Weak Signal/CW/SSB", "startFrequency": 420000000, "endFrequency": 432000000, "notes": "Includes EME and beacons" },
+        { "version": 1, "name": "Beacons", "startFrequency": 432300000, "endFrequency": 432400000, "notes": "" },
+        { "version": 1, "name": "SSB Calling", "startFrequency": 432100000, "endFrequency": 432100000, "notes": "" },
+        { "version": 1, "name": "Digital", "startFrequency": 432000000, "endFrequency": 433000000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Inputs", "startFrequency": 440000000, "endFrequency": 445000000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Outputs", "startFrequency": 445000000, "endFrequency": 450000000, "notes": "" },
+        { "version": 1, "name": "FM Simplex", "startFrequency": 446000000, "endFrequency": 446000000, "notes": "National simplex" }
+      ],
+      "notes": "High-use UHF band for repeaters, simplex, EME, and digital voice.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 14,
+      "name": "33 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 902000000,
+      "endFrequency": 928000000,
+      "subBands": [
+        { "version": 1, "name": "Weak Signal", "startFrequency": 902000000, "endFrequency": 903000000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 903000000, "endFrequency": 903100000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Inputs", "startFrequency": 902000000, "endFrequency": 902400000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Outputs", "startFrequency": 927600000, "endFrequency": 928000000, "notes": "" },
+        { "version": 1, "name": "FM Simplex", "startFrequency": 906000000, "endFrequency": 906000000, "notes": "" }
+      ],
+      "notes": "Shared with ISM; mostly FM and ATV use.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 15,
+      "name": "23 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 1240000000,
+      "endFrequency": 1300000000,
+      "subBands": [
+        { "version": 1, "name": "CW/SSB", "startFrequency": 1240000000, "endFrequency": 1246000000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 1294000000, "endFrequency": 1294100000, "notes": "" },
+        { "version": 1, "name": "FM Simplex", "startFrequency": 1296000000, "endFrequency": 1297000000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Inputs", "startFrequency": 1270000000, "endFrequency": 1274000000, "notes": "" },
+        { "version": 1, "name": "FM Repeater Outputs", "startFrequency": 1282000000, "endFrequency": 1286000000, "notes": "" },
+        { "version": 1, "name": "ATV/Digital", "startFrequency": 1250000000, "endFrequency": 1260000000, "notes": "Video and wideband" }
+      ],
+      "notes": "Entry-level microwave band; supports FM, SSB, ATV, digital, EME.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 16,
+      "name": "13 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 2300000000,
+      "endFrequency": 2450000000,
+      "subBands": [
+        { "version": 1, "name": "Weak Signal/CW/SSB", "startFrequency": 2300000000, "endFrequency": 2303000000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 2303400000, "endFrequency": 2303500000, "notes": "" },
+        { "version": 1, "name": "ATV/Wideband Digital", "startFrequency": 2390000000, "endFrequency": 2450000000, "notes": "Shared with ISM Wi-Fi" }
+      ],
+      "notes": "Shared ISM band; supports data, ATV, EME, and weak-signal ops.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 17,
+      "name": "9 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 3300000000,
+      "endFrequency": 3500000000,
+      "subBands": [
+        { "version": 1, "name": "CW/SSB", "startFrequency": 3400000000, "endFrequency": 3450000000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 3400000000, "endFrequency": 3401000000, "notes": "" },
+        { "version": 1, "name": "Digital/ATV", "startFrequency": 3450000000, "endFrequency": 3500000000, "notes": "Shared with 3.4–3.5 GHz services" }
+      ],
+      "notes": "Limited availability; experimental and microwave contest activity.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 18,
+      "name": "5 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 5650000000,
+      "endFrequency": 5925000000,
+      "subBands": [
+        { "version": 1, "name": "Weak Signal", "startFrequency": 5650000000, "endFrequency": 5670000000, "notes": "" },
+        { "version": 1, "name": "Beacons", "startFrequency": 5668000000, "endFrequency": 5669000000, "notes": "" },
+        { "version": 1, "name": "ATV/Wideband", "startFrequency": 5780000000, "endFrequency": 5850000000, "notes": "Shared with 5 GHz Wi-Fi" }
+      ],
+      "notes": "Shared ISM band; supports ATV and experimental microwave work.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    },
+    {
+      "id": 19,
+      "name": "3 centimeters",
+      "bookmarkListId": 0,
+      "startFrequency": 10000000000,
+      "endFrequency": 10500000000,
+      "subBands": [
+        { "version": 1, "name": "CW/SSB", "startFrequency": 10368000000, "endFrequency": 10370000000, "notes": "Weak-signal center 10.368 GHz" },
+        { "version": 1, "name": "Beacons", "startFrequency": 10368000000, "endFrequency": 10368100000, "notes": "" },
+        { "version": 1, "name": "ATV/Wideband", "startFrequency": 10450000000, "endFrequency": 10500000000, "notes": "" }
+      ],
+      "notes": "Primary microwave EME and beacon band; also ATV experimentation.",
+      "favorite": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "displayColor": null
+    }
+  ]
+}

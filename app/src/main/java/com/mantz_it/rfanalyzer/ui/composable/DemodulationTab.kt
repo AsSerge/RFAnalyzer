@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +56,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mantz_it.rfanalyzer.database.Band
+import com.mantz_it.rfanalyzer.database.Station
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -94,7 +100,7 @@ enum class DemodulationMode(val displayName: String, val minChannelWidth: Int, v
     WFM("FM (wide)", 30000, 150000, 100000, 100000),
     LSB("LSB", 1500, 5000, 2800, 100),
     USB("USB", 1500, 5000, 2800, 100),
-    CW("CW", 150, 800, 300, 50),
+    CW("CW", 100, 600, 200, 50),
     //DIGITAL("Digital Mode", 0, 50000, 0)  //dummy channel width values; equals largest channel width (=WFM)
 }
 
@@ -109,6 +115,11 @@ data class DemodulationTabActions(
     val onZoomChanged: (Float) -> Unit,
     val onAudioMuteClicked: () -> Unit,
     val onAudioVolumeLevelChanged: (Float) -> Unit,
+    val onOpenBookmarksClicked: () -> Unit,
+    val onAddStationBookmarkClicked: () -> Unit,
+    val onAddBandBookmarkClicked: () -> Unit,
+    val onTuneToStation: (Station) -> Unit,
+    val onViewBand: (Band) -> Unit
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,10 +137,14 @@ fun DemodulationTabComposable(
     viewportZoom: Float,
     audioVolumeLevel: Float,
     audioMuted: Boolean,
+    stationFavorites: List<Station>,
+    bandFavorites: List<Band>,
     demodulationTabActions: DemodulationTabActions
 ) {
     var showVolumeSlider by remember { mutableStateOf(false) }
     var volumeSliderTouched by remember { mutableStateOf(false) }
+    var showBookmarkDialog by remember { mutableStateOf(false) }
+    var showStationFavorites by remember { mutableStateOf(true) }
 
     ScrollableColumnWithFadingEdge {
         Row {
@@ -226,6 +241,15 @@ fun DemodulationTabComposable(
                     helpSubPath = "demodulation.html#channel-frequency",
                     modifier = Modifier.weight(1f)
                 )
+                Button(
+                    onClick = { showBookmarkDialog = true },
+                    shape = MaterialTheme.shapes.small,
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .padding(start = 4.dp, end = 2.dp, top = 12.dp)
+                        .height(58.dp)
+                        .align(Alignment.CenterVertically)
+                ) { OverlayIcon(Icons.Default.MenuBook, Icons.Default.Favorite, contentDescription = "Station Favorites", mainIconSize = 32.dp, badgeIconSize = 12.dp, badgePadding = 3.dp, badgeTint = Color.Red, badgeAlignment = Alignment.CenterStart) }
             }
             TunerWheel(
                 onRotationEvent = demodulationTabActions.onTunerWheelDelta,
@@ -281,6 +305,21 @@ fun DemodulationTabComposable(
                 onCheckedChange = demodulationTabActions.onKeepChannelCenteredChanged
             )
         }
+    }
+
+    if(showBookmarkDialog) {
+        BookmarkFavoriteDialog(
+            stationFavorites = stationFavorites,
+            bandFavorites = bandFavorites,
+            showStationFavoritesInitially = showStationFavorites,
+            onTabChanged = { showStationFavorites = it },
+            onOpenBookmarksClicked = { showBookmarkDialog = false; demodulationTabActions.onOpenBookmarksClicked() },
+            onAddStationBookmarkClicked = demodulationTabActions.onAddStationBookmarkClicked,
+            onAddBandBookmarkClicked = demodulationTabActions.onAddBandBookmarkClicked,
+            onTuneToStation = { showBookmarkDialog = false; demodulationTabActions.onTuneToStation(it) },
+            onViewBand = { showBookmarkDialog = false; demodulationTabActions.onViewBand(it) },
+            onDismiss = { showBookmarkDialog = false }
+        )
     }
 }
 
@@ -438,6 +477,8 @@ fun DemodulationTabPreview() {
             viewportZoom = 0.9f,
             audioVolumeLevel = 0.72f,
             audioMuted = false,
+            stationFavorites = emptyList(),
+            bandFavorites = emptyList(),
             demodulationTabActions = DemodulationTabActions(
                 onDemodulationModeChanged = {},
                 onChannelFrequencyChanged = {},
@@ -449,6 +490,11 @@ fun DemodulationTabPreview() {
                 onZoomChanged = { },
                 onAudioMuteClicked = { },
                 onAudioVolumeLevelChanged = { },
+                onOpenBookmarksClicked = { },
+                onAddStationBookmarkClicked = { },
+                onAddBandBookmarkClicked = { },
+                onTuneToStation = { },
+                onViewBand = { }
             ),
         )
     }

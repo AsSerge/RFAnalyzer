@@ -167,6 +167,19 @@ This setting is passed to the RTL-SDR driver and allows to compensate for small
 frequency offsets due to hardware imperfections. The value has the unit PPM
 (parts-per-million) and can also be negative.
 
+### Direct Sampling Mode
+
+!!! warning "Experimental Feature"
+    This feature is experimental. Use at own risk.
+
+Direct Sampling Mode can be used to extend the tunable range for the RTL-SDR device
+and receive shortwave signals (0 - 28.8MHz).
+
+However it needs a hardware modification of the RTL-SDR. Some RTL-SDR devices
+already have the modification build in (e.g. the RTL-SDR Blog V3 or the NooElec
+V5). For more information visit the following link: [Direct Sampling Mode
+(rtl-sdr.com)](https://www.rtl-sdr.com/rtl-sdr-direct-sampling-mode/)
+
 ---
 
 ## HackRF Specific Settings
@@ -201,6 +214,29 @@ managed by the Airspy when setting the linearity and sensitivity gain values.
 
 If you wish to specify the LNA, Mixer and VGA values explicitly, enable the
 **Advanced Gain Control** switch.
+
+---
+
+## Airspy HF Specific Settings
+
+When **AIRSPYHF** is selected as the signal source, a range of
+hardware-specific settings becomes available.
+
+### Automatic Gain Control (AGC)
+
+This setting can enable the build-in AGC of the Airspy HF+. If enabled, the
+**AGC Threshold** can be set to either `Low` or `High` with a slider.
+
+### LNA Preamp
+
+The Airspy HF+ includes a Low Noise Amplifier (LNA) which can be enabled with
+this setting. It increases the input signal level by 6dB.
+
+### Attenuation
+
+If the [AGC setting](#automatic-gain-control-agc) is turned off, an attenuation
+level can be chosen instead. The input signal is attenuated by a chosen factor
+(0 - 48dB). This is useful if strong nearby signals overload the SDR.
 
 ---
 

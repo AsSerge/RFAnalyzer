@@ -30,6 +30,9 @@
 - Adjustable SDR settings (frequency, gain, sample rate, etc.)
 - Adjustable FFT settings (FFT size, averaging, peak hold, frame rate, etc.)
 - Raw IQ recording and playback
+- Bookmarks for Stations and Bands
+  - Import from SDR# or SDR++
+  - Automatically synchronize with online lists (EiBi DB, POTA & SOTA Spots)
 
 <p float="left">
   <img src="./assets/rtlsdr_source_tab.png" width="45%" />
