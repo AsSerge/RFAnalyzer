@@ -13,29 +13,34 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        
+    
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
-      
-    - name: Grant execute permission for gradlew
+    
+    - name: Grant execute permission
       run: chmod +x gradlew
-      
+    
+    - name: Debug - list files
+      run: |
+        echo "=== Root directory ==="
+        ls -la
+        echo "=== Gradle files ==="
+        find . -name "*.gradle" -type f
+    
     - name: Build APK
       run: ./gradlew assembleDebug --stacktrace
-      
-    # 🔧 НОВЫЙ ШАГ: Находим файл .apk и сохраняем его путь
+    
     - name: Find APK file
       id: find-apk
       run: |
         apk_file=$(find . -type f -name '*.apk' -print -quit)
         if [ -z "$apk_file" ]; then
-          echo "::error::No APK file found!"
+          echo "::error::No APK file found! Build may have failed."
           exit 1
         fi
         echo "APK_PATH=$apk_file" >> $GITHUB_OUTPUT
         echo "Found APK at: $apk_file"
-      
-    # 🔧 ИСПРАВЛЕННЫЙ ШАГ: Загружаем найденный файл
+    
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
