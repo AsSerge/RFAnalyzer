@@ -1,4 +1,8 @@
 name: Build RF Analyzer APK
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  DOCS_REQUIRED: false  # 👈 ЭТА СТРОКА ОТКЛЮЧАЕТ ГЕНЕРАЦИЮ ДОКУМЕНТАЦИИ
+
 on:
   workflow_dispatch:
 
@@ -17,29 +21,22 @@ jobs:
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
     
-    - name: Grant execute permission
+    - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     
-    - name: Debug - list files
-      run: |
-        echo "=== Root directory ==="
-        ls -la
-        echo "=== Gradle files ==="
-        find . -name "*.gradle" -type f
-    
     - name: Build APK
-      run: ./gradlew assembleDebug --stacktrace
+      run: ./gradlew assembleDebug --stacktrace -x generateDocs
+      # 👆 Флаг -x generateDocs пропускает эту задачу
     
-    - name: Find APK file
+    - name: Find and upload APK
       id: find-apk
       run: |
         apk_file=$(find . -type f -name '*.apk' -print -quit)
         if [ -z "$apk_file" ]; then
-          echo "::error::No APK file found! Build may have failed."
+          echo "::error::No APK file found!"
           exit 1
         fi
         echo "APK_PATH=$apk_file" >> $GITHUB_OUTPUT
-        echo "Found APK at: $apk_file"
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
