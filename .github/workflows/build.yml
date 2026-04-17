@@ -17,6 +17,17 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
     
+    - name: Install CMake 4.0.3
+      run: |
+        # Скачиваем CMake 4.0.3 для Linux
+        wget https://github.com/Kitware/CMake/releases/download/v4.0.3/cmake-4.0.3-linux-x86_64.tar.gz
+        tar -xzf cmake-4.0.3-linux-x86_64.tar.gz
+        sudo mv cmake-4.0.3-linux-x86_64 /opt/cmake-4.0.3
+        echo "/opt/cmake-4.0.3/bin" >> $GITHUB_PATH
+    
+    - name: Verify CMake version
+      run: cmake --version
+    
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
     
